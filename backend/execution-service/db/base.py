@@ -9,3 +9,4 @@ from app.models.usuarios import Usuario
 from app.models.cursos import Curso
 from app.models.tareas import Tarea, CriterioCalificacion, Intento, CalificacionPorCriterio
 from app.models.auditoria import HistorialAuditoria
+from app.models.cursos import Matricula

@@ -19,16 +19,22 @@ def get_cursos_by_profesor(db: Session, profesor_id: int):
     """Filtra las aulas virtuales asignadas a un docente."""
     return db.query(Curso).filter(Curso.id_profesor == profesor_id).all()
 
-def create_curso(db: Session, curso: CursoCreate):
+def create_curso(
+    db: Session,
+    curso: CursoCreate,
+    id_profesor: int
+):
     db_curso = Curso(
         codigo_curso=curso.codigo_curso,
         nombre=curso.nombre,
         gestion=curso.gestion,
-        id_profesor=curso.id_profesor
+        id_profesor=id_profesor
     )
+
     db.add(db_curso)
     db.commit()
     db.refresh(db_curso)
+
     return db_curso
 
 def update_curso(db: Session, curso_id: int, curso_in: CursoUpdate):
@@ -117,3 +123,30 @@ def delete_tarea(db: Session, tarea_id: int):
         db.commit()
         return True
     return False
+
+#
+from app.models.cursos import Matricula
+from app.schemas.matriculas import MatriculaCreate
+
+def inscribir_estudiante_en_curso(db: Session, id_estudiante: int, id_curso: int):
+    """Verifica duplicados e inscribe a un estudiante en un curso."""
+    # Control preventivo: ¿Ya está inscrito?
+    existe = db.query(Matricula).filter(
+        Matricula.id_estudiante == id_estudiante,
+        Matricula.id_cur == id_curso  # Nota: Verifica si tu columna se llama id_curso o id_cur según tus modelos previos
+    ).first()
+    
+    if existe:
+        return existe
+
+    db_matricula = Matricula(id_estudiante=id_estudiante, id_curso=id_curso)
+    db.add(db_matricula)
+    db.commit()
+    db.refresh(db_matricula)
+    return db_matricula
+
+def get_cursos_inscritos_by_estudiante(db: Session, id_estudiante: int):
+    """Retorna los cursos a los que el estudiante se ha matriculado."""
+    return db.query(Curso).join(Matricula, Curso.id_curso == Matricula.id_curso).filter(
+        Matricula.id_estudiante == id_estudiante
+    ).all()

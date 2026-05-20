@@ -10,6 +10,7 @@ from app.models.tareas import Intento
 from app.crud import crud_task, crud_attempt
 from app.schemas.intentos import IntentoCreate, IntentoResponse
 from app.schemas.tareas import TareaResponse
+from app.schemas.matriculas import MatriculaCreate, MatriculaResponse
 
 router = APIRouter(prefix="/estudiante", tags=["Panel de Estudiantes"])
 require_estudiante = RoleChecker(["ESTUDIANTE"])
@@ -107,3 +108,44 @@ def retirar_envio(
     db.delete(intento_db)
     db.commit()
     return None
+
+# --- POST: Inscribirse a un curso ---
+@router.post("/cursos/inscribirse", response_model=MatriculaResponse, status_code=status.HTTP_201_CREATED)
+def inscribirse_a_curso(
+    matricula_in: MatriculaCreate,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_estudiante)
+):
+    """Permite al estudiante matricularse en un curso usando el id_curso."""
+    curso = crud_task.get_curso_by_id(db, curso_id=matricula_in.id_curso)
+    if not curso:
+        raise HTTPException(status_code=404, detail="El curso no existe.")
+        
+    return crud_task.inscribir_estudiante_en_curso(
+        db=db, id_estudiante=current_user.id_usuario, id_curso=matricula_in.id_curso
+    )
+
+from app.models.cursos import Matricula
+# --- GET: Ver Tareas (AHORA PROTEGIDO POR MATRÍCULA) ---
+@router.get("/cursos/{id_curso}/tareas", response_model=List[TareaResponse])
+def ver_tareas_del_curso(
+    id_curso: int,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, le=100),
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_estudiante)
+):
+    """Lista las tareas SOLO si el estudiante está formalmente inscrito en el curso."""
+    # Validación de seguridad: Verificar matrícula activa
+    inscrito = db.query(Matricula).filter(
+        Matricula.id_estudiante == current_user.id_usuario,
+        Matricula.id_curso == id_curso
+    ).first()
+    
+    if not inscrito:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="No tienes acceso a las tareas de este curso porque no estás inscrito."
+        )
+        
+    return crud_task.get_tareas_by_curso(db, curso_id=id_curso, skip=skip, limit=limit)
