@@ -133,7 +133,7 @@ def inscribir_estudiante_en_curso(db: Session, id_estudiante: int, id_curso: int
     # Control preventivo: ¿Ya está inscrito?
     existe = db.query(Matricula).filter(
         Matricula.id_estudiante == id_estudiante,
-        Matricula.id_cur == id_curso  # Nota: Verifica si tu columna se llama id_curso o id_cur según tus modelos previos
+        Matricula.id_curso == id_curso  # Nota: Verifica si tu columna se llama id_curso o id_cur según tus modelos previos
     ).first()
     
     if existe:
