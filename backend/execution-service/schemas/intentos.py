@@ -19,11 +19,13 @@ class CalificacionCriterioResponse(CalificacionCriterioBase):
 class IntentoCreate(BaseModel):
     id_tarea: int
     url_codigo_fuente: str
+    contenido_codigo: Optional[str] = None
 
 class IntentoUpdateEstado(BaseModel):
     estado: str  # 'ENVIADO', 'PROCESANDO', 'CALIFICADO', 'RECHAZADO'
     nota_total: Optional[Decimal] = None
     calificaciones: Optional[List[CalificacionCriterioCreate]] = None
+    contenido_codigo: Optional[str] = None
 
 class IntentoResponse(BaseModel):
     id_intento: int
@@ -33,6 +35,7 @@ class IntentoResponse(BaseModel):
     fecha_envio: datetime
     url_codigo_fuente: str
     nota_total: Optional[Decimal] = None
+    contenido_codigo: Optional[str]
     estado: str
     calificaciones_detalladas: List[CalificacionCriterioResponse] = []
 
