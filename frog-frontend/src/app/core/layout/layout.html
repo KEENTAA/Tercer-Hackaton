@@ -1,0 +1,68 @@
+<div class="layout">
+  <p-toast></p-toast>
+  <p-confirmdialog></p-confirmdialog>
+
+  <aside class="sidebar" [class.collapsed]="sidebarCollapsed()">
+    <div class="sidebar-header">
+      <span class="logo" (click)="sidebarCollapsed.set(!sidebarCollapsed())">
+        <i class="pi pi-frog-fill"></i>
+        @if (!sidebarCollapsed()) {
+          <span class="logo-text">Frog</span>
+        }
+      </span>
+    </div>
+
+    <nav class="sidebar-nav">
+      @for (item of menuItems(); track item.routerLink) {
+        <a
+          [routerLink]="item.routerLink"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{ exact: true }"
+          class="nav-item"
+        >
+          <i [class]="item.icon"></i>
+          @if (!sidebarCollapsed()) {
+            <span class="nav-label">{{ item.label }}</span>
+          }
+        </a>
+      }
+    </nav>
+  </aside>
+
+  <div class="main-wrapper">
+    <header class="topbar">
+      <div class="topbar-left">
+        <p-button
+          icon="pi pi-bars"
+          variant="text"
+          size="small"
+          (onClick)="sidebarCollapsed.set(!sidebarCollapsed())"
+        />
+      </div>
+
+      <div class="topbar-right">
+        @if (currentUser()) {
+          <span class="user-name">{{ currentUser()!.nombre }}</span>
+          <p-badge
+            [value]="userRole()"
+          ></p-badge>
+          <p-avatar
+            [label]="currentUser()!.nombre.charAt(0)"
+            shape="circle"
+          ></p-avatar>
+          <p-button
+            label="Salir"
+            icon="pi pi-sign-out"
+            variant="text"
+            size="small"
+            (onClick)="logout()"
+          />
+        }
+      </div>
+    </header>
+
+    <main class="content">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+</div>

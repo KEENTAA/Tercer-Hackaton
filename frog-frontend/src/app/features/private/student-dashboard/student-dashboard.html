@@ -1,0 +1,216 @@
+<div class="dashboard">
+  <p-toast></p-toast>
+
+  <h2 class="page-title">Mis Cursos</h2>
+
+  <div class="courses-grid">
+    @for (course of courses(); track course.id_curso) {
+      <p-card [header]="course.nombre" class="course-card">
+        <p class="course-code">{{ course.codigo_curso }} — {{ course.gestion }}</p>
+        <p-button
+          label="Ver Tareas"
+          icon="pi pi-eye"
+          variant="outlined"
+          size="small"
+          (onClick)="loadTasks(course.id_curso)"
+        />
+      </p-card>
+    }
+    @empty {
+      <p class="empty-state">No estás inscrito en ningún curso aún.</p>
+    }
+  </div>
+
+  @if (tasks().length > 0) {
+    <h2 class="page-title">Tareas Disponibles</h2>
+
+    <p-table [value]="tasks()" responsiveLayout="scroll" class="tasks-table">
+      <ng-template pTemplate="header">
+        <tr>
+          <th>Título</th>
+          <th>Descripción</th>
+          <th>Fecha Límite</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-task>
+        <tr>
+          <td>{{ task.titulo }}</td>
+          <td class="desc-cell">{{ task.descripcion }}</td>
+          <td>{{ task.fecha_limite | date: 'dd/MM/yyyy HH:mm' }}</td>
+          <td>
+            @if (isTaskExpired(task)) {
+              <p-tag severity="danger" value="Cerrada"></p-tag>
+            } @else {
+              <p-tag severity="success" value="Abierta"></p-tag>
+            }
+          </td>
+          <td>
+            <p-button
+              label="Enviar"
+              icon="pi pi-upload"
+              size="small"
+              [disabled]="isTaskExpired(task)"
+              (onClick)="openUploadDialog(task)"
+            />
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  }
+
+  <h2 class="page-title">Historial de Envíos</h2>
+
+  <p-table
+    [value]="paginatedAttempts()"
+    [paginator]="true"
+    [totalRecords]="attempts().length"
+    [rows]="studentPageSize()"
+    [rowsPerPageOptions]="[5, 10, 20]"
+    (onPage)="onStudentPageChange($event)"
+    responsiveLayout="scroll"
+    class="attempts-table"
+  >
+    <ng-template pTemplate="header">
+      <tr>
+        <th>#</th>
+        <th>Tarea</th>
+        <th>Fecha Envío</th>
+        <th>Nota</th>
+        <th>Estado</th>
+        <th>Acciones</th>
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="body" let-attempt>
+      <tr>
+        <td>{{ attempt.numero_intento }}</td>
+        <td>Tarea #{{ attempt.id_tarea }}</td>
+        <td>{{ attempt.fecha_envio | date: 'dd/MM/yyyy HH:mm' }}</td>
+        <td>
+          @if (attempt.nota_total !== null) {
+            <span class="grade">{{ attempt.nota_total }}</span>
+          } @else {
+            <span class="no-grade">—</span>
+          }
+        </td>
+        <td>
+          <p-tag
+            [severity]="getStatusSeverity(attempt.estado)"
+            [value]="attempt.estado"
+          ></p-tag>
+        </td>
+        <td>
+          <p-button
+            label="Ver Detalle"
+            icon="pi pi-eye"
+            variant="text"
+            size="small"
+            (onClick)="viewAttemptDetail(attempt)"
+          />
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+
+  <p-dialog
+    [(visible)]="showUploadDialog"
+    [header]="'Enviar: ' + (selectedTask()?.titulo ?? '')"
+    [modal]="true"
+    [style]="{ width: '500px' }"
+  >
+    @if (uploading()) {
+      <div class="uploading-state">
+        <p-progressspinner></p-progressspinner>
+        <p>Enviando código...</p>
+      </div>
+    } @else {
+      <p-fileupload
+        name="code"
+        [customUpload]="true"
+        (uploadHandler)="onUpload($event)"
+        accept=".py,.java,.js,.ts,.c,.cpp,.rb,.go,.rs"
+        maxFileSize="1000000"
+        chooseLabel="Seleccionar"
+        uploadLabel="Enviar"
+        cancelLabel="Cancelar"
+      ></p-fileupload>
+    }
+  </p-dialog>
+
+  <p-dialog
+    [(visible)]="showAttemptDetailDialog"
+    header="Detalle del Envío"
+    [modal]="true"
+    [style]="{ width: '700px' }"
+  >
+    @if (attemptDetail()) {
+      <div class="attempt-detail">
+        <div class="detail-section">
+          <h4>Información General</h4>
+          <p><strong>Intento:</strong> #{{ attemptDetail()!.numero_intento }}</p>
+          <p><strong>Nota Total:</strong> {{ attemptDetail()!.nota_total ?? 'Pendiente' }}</p>
+        </div>
+
+        @if (attemptDetail()!.calificaciones.length) {
+          <div class="detail-section">
+            <h4>Calificaciones por Criterio</h4>
+            <p-table [value]="attemptDetail()!.calificaciones" [tableStyle]="{ 'min-width': '100%' }">
+              <ng-template pTemplate="header">
+                <tr>
+                  <th>Criterio</th>
+                  <th>Nota</th>
+                  <th>Comentarios</th>
+                </tr>
+              </ng-template>
+              <ng-template pTemplate="body" let-grade>
+                <tr>
+                  <td>Criterio #{{ grade.id_criterio }}</td>
+                  <td>{{ grade.nota_obtenida }}</td>
+                  <td>{{ grade.comentarios || '—' }}</td>
+                </tr>
+              </ng-template>
+            </p-table>
+          </div>
+        }
+
+        @if (attemptDetail()!.ejecucion) {
+          <div class="detail-section">
+            <h4>Resultado de Ejecución</h4>
+            <p><strong>Estado:</strong> {{ attemptDetail()!.ejecucion!.estado_compilacion }}</p>
+            <p><strong>Tiempo:</strong> {{ attemptDetail()!.ejecucion!.tiempo_usado_ms }}ms</p>
+            <p><strong>Memoria:</strong> {{ attemptDetail()!.ejecucion!.memoria_usada_kb }}KB</p>
+            <p><strong>Aprobado:</strong> {{ attemptDetail()!.ejecucion!.aprobado ? 'Sí' : 'No' }}</p>
+            @if (attemptDetail()!.ejecucion!.salida_consola) {
+              <pre class="console-output">{{ attemptDetail()!.ejecucion!.salida_consola }}</pre>
+            }
+          </div>
+        }
+
+        @if (plagiarismReport()) {
+          <div class="detail-section">
+            <h4>Reporte de Plagio</h4>
+            <p><strong>Similitud:</strong> {{ plagiarismReport()!.porcentaje_similitud_total }}%</p>
+            <p><strong>Estado:</strong> {{ plagiarismReport()!.estado_analisis }}</p>
+            @if (plagiarismReport()!.coincidencias.length) {
+              <p-table [value]="plagiarismReport()!.coincidencias" [tableStyle]="{ 'min-width': '100%' }">
+                <ng-template pTemplate="header">
+                  <tr>
+                    <th>Código Coincidente</th>
+                    <th>Coincidencia</th>
+                  </tr>
+                </ng-template>
+                <ng-template pTemplate="body" let-match>
+                  <tr>
+                    <td>Firma #{{ match.id_firma_coincidente }}</td>
+                    <td>{{ match.porcentaje_coincidencia }}%</td>
+                  </tr>
+                </ng-template>
+              </p-table>
+            }
+          </div>
+        }
+      </div>
+    }
+  </p-dialog>
+</div>

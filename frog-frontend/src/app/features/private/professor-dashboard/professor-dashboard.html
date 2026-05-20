@@ -1,0 +1,328 @@
+<div class="dashboard">
+  <p-toast></p-toast>
+  <p-confirmdialog></p-confirmdialog>
+
+  <h2 class="page-title">Panel del Profesor</h2>
+
+  <p-tabs value="0">
+    <p-tablist>
+      <p-tab value="0">Cursos</p-tab>
+      <p-tab value="1">Tareas</p-tab>
+      <p-tab value="2">Criterios</p-tab>
+    </p-tablist>
+
+    <p-tabpanels>
+      <p-tabpanel value="0">
+        <div class="tab-header">
+          <h3>Mis Cursos</h3>
+          <p-button
+            label="Nuevo Curso"
+            icon="pi pi-plus"
+            size="small"
+            (onClick)="openCourseDialog()"
+          />
+        </div>
+
+        <p-table
+          [value]="paginatedCourses()"
+          [paginator]="true"
+          [totalRecords]="courses().length"
+          [rows]="coursePageSize()"
+          [rowsPerPageOptions]="[5, 10, 20]"
+          (onPage)="onCoursePageChange($event)"
+          responsiveLayout="scroll"
+        >
+          <ng-template pTemplate="header">
+            <tr>
+              <th>Código</th>
+              <th>Nombre</th>
+              <th>Gestión</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-course>
+            <tr>
+              <td>{{ course.codigo_curso }}</td>
+              <td>{{ course.nombre }}</td>
+              <td>{{ course.gestion }}</td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </p-tabpanel>
+
+      <p-tabpanel value="1">
+        <div class="tab-header">
+          <h3>Tareas</h3>
+          <p-button
+            label="Nueva Tarea"
+            icon="pi pi-plus"
+            size="small"
+            (onClick)="openTaskDialog()"
+          />
+        </div>
+
+        <p-table [value]="tasks()" responsiveLayout="scroll">
+          <ng-template pTemplate="header">
+            <tr>
+              <th>Título</th>
+              <th>Fecha Límite</th>
+              <th>Acciones</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-task>
+            <tr>
+              <td>{{ task.titulo }}</td>
+              <td>{{ task.fecha_limite | date: 'dd/MM/yyyy HH:mm' }}</td>
+              <td>
+                <p-button
+                  label="Ver Intentos"
+                  icon="pi pi-eye"
+                  variant="text"
+                  size="small"
+                  (onClick)="loadAttempts(task.id_tarea)"
+                />
+                <p-button
+                  label="Eliminar"
+                  icon="pi pi-trash"
+                  variant="text"
+                  severity="danger"
+                  size="small"
+                  (onClick)="confirmDeleteTask(task)"
+                />
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </p-tabpanel>
+
+      <p-tabpanel value="2">
+        <div class="tab-header">
+          <h3>Criterios de Calificación</h3>
+          @if (tasks().length > 0) {
+            <p-button
+              label="Agregar Criterio"
+              icon="pi pi-plus"
+              size="small"
+              (onClick)="openCriterionDialog(tasks()[0])"
+            />
+          }
+        </div>
+
+        @for (task of tasks(); track task.id_tarea) {
+          <p-card [header]="task.titulo" class="criteria-card">
+            <p-button
+              label="+ Criterio"
+              icon="pi pi-plus"
+              variant="outlined"
+              size="small"
+              (onClick)="openCriterionDialog(task)"
+            />
+            @if (criteria().length > 0) {
+              <p-table [value]="criteria()" [tableStyle]="{ 'min-width': '100%' }" class="mt-2">
+                <ng-template pTemplate="header">
+                  <tr>
+                    <th>Descripción</th>
+                    <th>Ponderación</th>
+                  </tr>
+                </ng-template>
+                <ng-template pTemplate="body" let-criterion>
+                  <tr>
+                    <td>{{ criterion.descripcion }}</td>
+                    <td>{{ criterion.ponderacion }}%</td>
+                  </tr>
+                </ng-template>
+              </p-table>
+            } @else {
+              <p class="empty-state">Sin criterios definidos</p>
+            }
+          </p-card>
+        }
+      </p-tabpanel>
+    </p-tabpanels>
+  </p-tabs>
+
+  <p-dialog
+    [(visible)]="showCourseDialog"
+    header="Nuevo Curso"
+    [modal]="true"
+    [style]="{ width: '450px' }"
+  >
+    <form [formGroup]="courseForm" (ngSubmit)="saveCourse()" class="dialog-form">
+      <div class="field">
+        <label for="codigo_curso">Código del Curso</label>
+        <input
+          id="codigo_curso"
+          type="text"
+          pInputText
+          formControlName="codigo_curso"
+          placeholder="Ej: SIS-101"
+          fluid
+        />
+      </div>
+      <div class="field">
+        <label for="nombre">Nombre</label>
+        <input
+          id="nombre"
+          type="text"
+          pInputText
+          formControlName="nombre"
+          placeholder="Ej: Introducción a la Programación"
+          fluid
+        />
+      </div>
+      <div class="field">
+        <label for="gestion">Gestión</label>
+        <input
+          id="gestion"
+          type="text"
+          pInputText
+          formControlName="gestion"
+          placeholder="Ej: 1/2026"
+          fluid
+        />
+      </div>
+      <p-button
+        type="submit"
+        label="Crear"
+        icon="pi pi-check"
+        [disabled]="courseForm.invalid"
+        fluid
+      />
+    </form>
+  </p-dialog>
+
+  <p-dialog
+    [(visible)]="showTaskDialog"
+    header="Nueva Tarea"
+    [modal]="true"
+    [style]="{ width: '500px' }"
+  >
+    <form [formGroup]="taskForm" (ngSubmit)="saveTask()" class="dialog-form">
+      <div class="field">
+        <label for="titulo">Título</label>
+        <input
+          id="titulo"
+          type="text"
+          pInputText
+          formControlName="titulo"
+          fluid
+        />
+      </div>
+      <div class="field">
+        <label for="descripcion">Descripción</label>
+        <textarea
+          id="descripcion"
+          pTextarea
+          formControlName="descripcion"
+          rows="3"
+          fluid
+        ></textarea>
+      </div>
+      <div class="field">
+        <label for="fecha_limite">Fecha Límite</label>
+        <p-datepicker
+          id="fecha_limite"
+          formControlName="fecha_limite"
+          [showTime]="true"
+          [hourFormat]="'24'"
+          fluid
+        />
+      </div>
+      <div class="field">
+        <label for="id_curso">Curso</label>
+        <p-select
+          id="id_curso"
+          formControlName="id_curso"
+          [options]="courses()"
+          optionLabel="nombre"
+          optionValue="id_curso"
+          placeholder="Seleccionar curso"
+          fluid
+        />
+      </div>
+      <p-button
+        type="submit"
+        label="Crear"
+        icon="pi pi-check"
+        [disabled]="taskForm.invalid"
+        fluid
+      />
+    </form>
+  </p-dialog>
+
+  <p-dialog
+    [(visible)]="showCriterionDialog"
+    [header]="'Criterio para: ' + (selectedTask()?.titulo ?? '')"
+    [modal]="true"
+    [style]="{ width: '450px' }"
+  >
+    <form [formGroup]="criterionForm" (ngSubmit)="saveCriterion()" class="dialog-form">
+      <div class="field">
+        <label for="descripcion">Descripción</label>
+        <input
+          id="descripcion"
+          type="text"
+          pInputText
+          formControlName="descripcion"
+          placeholder="Ej: Pruebas unitarias"
+          fluid
+        />
+      </div>
+      <div class="field">
+        <label for="ponderacion">Ponderación (%)</label>
+        <p-inputnumber
+          id="ponderacion"
+          formControlName="ponderacion"
+          [min]="0"
+          [max]="100"
+          fluid
+        />
+      </div>
+      <p-button
+        type="submit"
+        label="Agregar"
+        icon="pi pi-check"
+        [disabled]="criterionForm.invalid"
+        fluid
+      />
+    </form>
+  </p-dialog>
+
+  <p-dialog
+    [(visible)]="showAttemptsDialog"
+    header="Intentos de Estudiantes"
+    [modal]="true"
+    [style]="{ width: '800px' }"
+  >
+    <p-table [value]="attempts()" responsiveLayout="scroll">
+      <ng-template pTemplate="header">
+        <tr>
+          <th>Estudiante</th>
+          <th># Intento</th>
+          <th>Fecha</th>
+          <th>Nota</th>
+          <th>Estado</th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-attempt>
+        <tr>
+          <td>Estudiante #{{ attempt.id_estudiante }}</td>
+          <td>{{ attempt.numero_intento }}</td>
+          <td>{{ attempt.fecha_envio | date: 'dd/MM/yyyy HH:mm' }}</td>
+          <td>
+            @if (attempt.nota_total !== null) {
+              <span class="grade">{{ attempt.nota_total }}</span>
+            } @else {
+              <span class="no-grade">—</span>
+            }
+          </td>
+          <td>
+            <p-tag
+              [severity]="getStatusSeverity(attempt.estado)"
+              [value]="attempt.estado"
+            ></p-tag>
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </p-dialog>
+</div>

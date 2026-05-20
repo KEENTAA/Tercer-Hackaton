@@ -1,0 +1,154 @@
+<div class="dashboard">
+  <p-toast></p-toast>
+
+  <h2 class="page-title">Panel de Administración</h2>
+
+  <p-tabs value="0">
+    <p-tablist>
+      <p-tab value="0">Auditoría</p-tab>
+      <p-tab value="1">Plagio - Alto Riesgo</p-tab>
+    </p-tablist>
+
+    <p-tabpanels>
+      <p-tabpanel value="0">
+        <div class="tab-header">
+          <h3>Historial de Auditoría</h3>
+          <div class="actions">
+            <p-button
+              label="Filtros"
+              icon="pi pi-filter"
+              variant="outlined"
+              size="small"
+              (onClick)="showFilterDialog.set(true)"
+            />
+            <p-button
+              label="Limpiar"
+              icon="pi pi-refresh"
+              variant="text"
+              size="small"
+              (onClick)="resetFilters()"
+            />
+          </div>
+        </div>
+
+        <p-table
+          [value]="paginatedAuditLogs()"
+          [paginator]="true"
+          [totalRecords]="auditLogs().length"
+          [rows]="auditPageSize()"
+          [rowsPerPageOptions]="[10, 15, 25, 50]"
+          (onPage)="onAuditPageChange($event)"
+          responsiveLayout="scroll"
+        >
+          <ng-template pTemplate="header">
+            <tr>
+              <th>ID</th>
+              <th>Acción</th>
+              <th>Intento</th>
+              <th>Ejecutado Por</th>
+              <th>Fecha</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-log>
+            <tr>
+              <td>{{ log.id_auditoria }}</td>
+              <td>
+                <p-tag severity="info" [value]="getActionLabel(log.accion)"></p-tag>
+              </td>
+              <td>#{{ log.id_intento }}</td>
+              <td>Usuario #{{ log.ejecutado_por }}</td>
+              <td>{{ log.fecha_cambio | date: 'dd/MM/yyyy HH:mm:ss' }}</td>
+            </tr>
+          </ng-template>
+        </p-table>
+
+        @if (auditLogs().length === 0) {
+          <p class="empty-state">No hay registros de auditoría para el período seleccionado.</p>
+        }
+      </p-tabpanel>
+
+      <p-tabpanel value="1">
+        <div class="tab-header">
+          <h3>Reportes de Plagio - Alto Riesgo (≥70%)</h3>
+          <p-button
+            label="Actualizar"
+            icon="pi pi-refresh"
+            variant="outlined"
+            size="small"
+            (onClick)="loadHighRiskReports()"
+          />
+        </div>
+
+        <p-table [value]="highRiskReports()" responsiveLayout="scroll">
+          <ng-template pTemplate="header">
+            <tr>
+              <th>Reporte</th>
+              <th>Intento</th>
+              <th>Similitud</th>
+              <th>Estado</th>
+              <th>TurnItIn ID</th>
+              <th>Fecha</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-report>
+            <tr>
+              <td>#{{ report.id_reporte }}</td>
+              <td>#{{ report.id_intento_ref }}</td>
+              <td>
+                <p-tag
+                  [severity]="getRiskLevel(report.porcentaje_similitud_total)"
+                  [value]="report.porcentaje_similitud_total + '%'"
+                ></p-tag>
+              </td>
+              <td>{{ report.estado_analisis }}</td>
+              <td>{{ report.id_externo_turnitin || '—' }}</td>
+              <td>{{ report.fecha_analisis | date: 'dd/MM/yyyy HH:mm' }}</td>
+            </tr>
+          </ng-template>
+        </p-table>
+
+        @if (highRiskReports().length === 0) {
+          <p class="empty-state">No hay reportes de alto riesgo.</p>
+        }
+      </p-tabpanel>
+    </p-tabpanels>
+  </p-tabs>
+
+  <p-dialog
+    [(visible)]="showFilterDialog"
+    header="Filtros de Auditoría"
+    [modal]="true"
+    [style]="{ width: '400px' }"
+  >
+    <div class="filter-form">
+      <div class="field">
+        <label>Rango de Fechas</label>
+        <p-datepicker
+          [selectionMode]="'range'"
+          [(ngModel)]="dateRange"
+          [showTime]="true"
+          [hourFormat]="'24'"
+          placeholder="Seleccionar rango"
+          fluid
+        />
+      </div>
+      <div class="field">
+        <label>Tipo de Acción</label>
+        <p-select
+          [options]="auditActions"
+          [(ngModel)]="selectedAction"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Todas las acciones"
+          fluid
+        />
+      </div>
+      <p-button
+        label="Aplicar Filtros"
+        icon="pi pi-check"
+        fluid
+        (onClick)="applyFilters()"
+      />
+    </div>
+  </p-dialog>
+</div>

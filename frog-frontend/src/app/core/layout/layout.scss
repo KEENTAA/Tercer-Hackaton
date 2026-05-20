@@ -1,0 +1,128 @@
+.layout {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.sidebar {
+  width: 250px;
+  background: var(--surface-900);
+  color: var(--surface-0);
+  display: flex;
+  flex-direction: column;
+  transition: width 0.2s ease;
+  overflow: hidden;
+
+  &.collapsed {
+    width: 64px;
+  }
+}
+
+.sidebar-header {
+  padding: 1rem;
+  border-bottom: 1px solid var(--surface-700);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  cursor: pointer;
+
+  i {
+    font-size: 1.5rem;
+    color: var(--primary-400);
+  }
+}
+
+.logo-text {
+  white-space: nowrap;
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: 0.5rem 0;
+  overflow-y: auto;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  color: var(--surface-300);
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface-700);
+    color: var(--surface-0);
+  }
+
+  &.active {
+    background: var(--primary-600);
+    color: var(--surface-0);
+  }
+
+  i {
+    font-size: 1.1rem;
+    min-width: 1.1rem;
+    text-align: center;
+  }
+}
+
+.nav-label {
+  white-space: nowrap;
+  font-size: 0.875rem;
+}
+
+.main-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.topbar {
+  height: 56px;
+  background: var(--surface-0);
+  border-bottom: 1px solid var(--surface-200);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.5rem;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.user-name {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+.content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem;
+  background: var(--surface-50);
+}
+
+:host ::ng-deep .badge-student {
+  background: #3b82f6;
+}
+
+:host ::ng-deep .badge-professor {
+  background: #f59e0b;
+}
+
+:host ::ng-deep .badge-admin {
+  background: #ef4444;
+}

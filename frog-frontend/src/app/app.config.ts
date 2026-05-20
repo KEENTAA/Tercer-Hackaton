@@ -16,12 +16,14 @@ import { providePrimeNG } from 'primeng/config';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { routes } from './app.routes';
 import Aura from '@primeuix/themes/aura';
+import { mockInterceptor } from './core/interceptors/mock.interceptor';
+import { authInterceptor } from './core/interceptors/auth.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideZonelessChangeDetection(),
-    provideHttpClient(),
+    provideHttpClient(withInterceptors([mockInterceptor, authInterceptor])),
     provideRouter(
       routes,
       withComponentInputBinding(),
