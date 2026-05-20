@@ -1,6 +1,6 @@
 FROM python:3.10-slim
 
-WORKDIR /app
+WORKDIR /code
 
 RUN apt-get update && apt-get install -y \
     libpq-dev \
@@ -10,6 +10,8 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+# Copiamos todo el código dentro de la carpeta 'app' para que 
+# los imports como 'from app.db.session import engine' funcionen.
+COPY . /code/app
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

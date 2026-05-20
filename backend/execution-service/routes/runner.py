@@ -17,8 +17,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import CasoPrueba, ResultadoEjecucion
-from app.schemas import (
+from app.models_ms2 import CasoPrueba, ResultadoEjecucion
+from app.schemas_ms2 import (
     CasoPruebaCreateBatch,
     CasoPruebaResponse,
     EjecucionRequest,

@@ -59,7 +59,7 @@ from sqlalchemy import text
 from app.core.config import get_settings
 from app.database import get_db, init_db
 from app.routes import runner
-from app.schemas import HealthResponse, HealthDatabaseStatus
+from app.schemas_ms2 import HealthResponse, HealthDatabaseStatus
 
 # Configurar logging
 logging.basicConfig(
