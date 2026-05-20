@@ -1,4 +1,4 @@
-import { ExecutionResult } from './runner.model';
+import { EjecucionResponse } from './runner.model';
 import { PlagiarismReport } from './plagiarism.model';
 
 export enum AttemptStatus {
@@ -36,6 +36,6 @@ export interface AttemptCreate {
 }
 
 export interface AttemptWithDetails extends Attempt {
-  ejecucion?: ExecutionResult;
+  ejecucion?: EjecucionResponse;
   plagio?: PlagiarismReport;
 }

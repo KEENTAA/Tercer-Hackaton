@@ -2,40 +2,46 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { env } from '../../../environments/environment';
-import { TestCase, TestCaseCreate, ExecuteRequest, ExecutionResult, ExecuteResponse } from '@core/models';
+import {
+  CasoPruebaCreateBatch,
+  CasoPruebaResponse,
+  EjecucionRequest,
+  EjecucionResponse,
+  ResultadoEjecucionResponse,
+} from '@core/models';
 
 @Injectable({ providedIn: 'root' })
 export class RunnerService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = env.runnerBaseUrl;
 
-  async createTestCase(request: TestCaseCreate): Promise<TestCase> {
+  async createTestCases(batch: CasoPruebaCreateBatch): Promise<CasoPruebaResponse[]> {
     return firstValueFrom(
-      this.http.post<TestCase>(`${this.apiUrl}/runner/test-cases`, request),
+      this.http.post<CasoPruebaResponse[]>(`${this.apiUrl}/runner/test-cases`, batch),
     );
   }
 
-  async getTestCasesByAssignment(idTareaRef: number): Promise<TestCase[]> {
+  async getTestCasesByAssignment(idTareaRef: number): Promise<CasoPruebaResponse[]> {
     return firstValueFrom(
-      this.http.get<TestCase[]>(`${this.apiUrl}/runner/test-cases/assignment/${idTareaRef}`),
+      this.http.get<CasoPruebaResponse[]>(`${this.apiUrl}/runner/test-cases/assignment/${idTareaRef}`),
     );
   }
 
-  async execute(request: ExecuteRequest): Promise<ExecuteResponse> {
+  async execute(request: EjecucionRequest): Promise<EjecucionResponse> {
     return firstValueFrom(
-      this.http.post<ExecuteResponse>(`${this.apiUrl}/runner/execute`, request),
+      this.http.post<EjecucionResponse>(`${this.apiUrl}/runner/execute`, request),
     );
   }
 
-  async getResults(idIntentoRef: number): Promise<ExecutionResult | null> {
+  async getResults(idIntentoRef: number): Promise<ResultadoEjecucionResponse | null> {
     return firstValueFrom(
-      this.http.get<ExecutionResult | null>(`${this.apiUrl}/runner/results/${idIntentoRef}`),
+      this.http.get<ResultadoEjecucionResponse | null>(`${this.apiUrl}/runner/results/${idIntentoRef}`),
     );
   }
 
-  async getResultsByAssignment(idTareaRef: number): Promise<ExecutionResult[]> {
+  async getResultsByAssignment(idTareaRef: number): Promise<ResultadoEjecucionResponse[]> {
     return firstValueFrom(
-      this.http.get<ExecutionResult[]>(`${this.apiUrl}/runner/results/assignment/${idTareaRef}`),
+      this.http.get<ResultadoEjecucionResponse[]>(`${this.apiUrl}/runner/results/assignment/${idTareaRef}`),
     );
   }
 }

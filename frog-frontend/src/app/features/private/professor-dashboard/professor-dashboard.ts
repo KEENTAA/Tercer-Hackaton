@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject, OnInit, signal, computed } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { DatePipe, CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormArray } from '@angular/forms';
 import { CardModule } from 'primeng/card';
 import { TableModule } from 'primeng/table';
@@ -14,12 +14,14 @@ import { MessageService, ConfirmationService } from 'primeng/api';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { InputNumberModule } from 'primeng/inputnumber';
-import { AuthService, CourseService, TaskService, AttemptService } from '@core/services';
-import { Course, Task, Attempt, TaskCreate, CriterioCreate } from '@core/models';
+import { CheckboxModule } from 'primeng/checkbox';
+import { AuthService, CourseService, TaskService, AttemptService, RunnerService } from '@core/services';
+import { Course, Task, Attempt, TaskCreate, CasoPruebaCreate } from '@core/models';
 
 @Component({
   selector: 'app-professor-dashboard',
   imports: [
+    CommonModule,
     DatePipe,
     FormsModule,
     ReactiveFormsModule,
@@ -35,6 +37,7 @@ import { Course, Task, Attempt, TaskCreate, CriterioCreate } from '@core/models'
     ToastModule,
     ConfirmDialogModule,
     InputNumberModule,
+    CheckboxModule,
   ],
   templateUrl: './professor-dashboard.html',
   styleUrl: './professor-dashboard.scss',
@@ -46,6 +49,7 @@ export class ProfessorDashboard implements OnInit {
   private courseService = inject(CourseService);
   private taskService = inject(TaskService);
   private attemptService = inject(AttemptService);
+  private runnerService = inject(RunnerService);
   private messageService = inject(MessageService);
   private confirmationService = inject(ConfirmationService);
   private fb = inject(FormBuilder);
@@ -55,11 +59,13 @@ export class ProfessorDashboard implements OnInit {
   courses = signal<Course[]>([]);
   tasks = signal<Task[]>([]);
   attempts = signal<Attempt[]>([]);
+  testCases = signal<any[]>([]);
   selectedTask = signal<Task | null>(null);
 
   showCourseDialog = signal(false);
   showTaskDialog = signal(false);
   showAttemptsDialog = signal(false);
+  showTestCasesDialog = signal(false);
 
   courseForm: FormGroup = this.fb.group({
     codigo_curso: ['', Validators.required],
@@ -116,6 +122,20 @@ export class ProfessorDashboard implements OnInit {
         severity: 'error',
         summary: 'Error',
         detail: 'No se pudieron cargar los intentos',
+      });
+    }
+  }
+
+  async loadTestCases(taskId: number): Promise<void> {
+    try {
+      const data = await this.runnerService.getTestCasesByAssignment(taskId);
+      this.testCases.set(data);
+      this.showTestCasesDialog.set(true);
+    } catch {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'No se pudieron cargar los casos de prueba',
       });
     }
   }
@@ -192,7 +212,7 @@ export class ProfessorDashboard implements OnInit {
         descripcion: formValue.descripcion,
         fecha_limite: formValue.fecha_limite.toISOString(),
         id_curso: formValue.id_curso,
-        criterios: formValue.criterios as CriterioCreate[],
+        criterios: formValue.criterios,
       };
 
       await this.taskService.create(request);

@@ -71,7 +71,7 @@
             </p>
             <div class="task-criteria">
               <h5>Criterios de Calificación</h5>
-              @for (c of task.criterios; track c.id_criterio) {
+              @for (c of task.criterios ?? []; track c.id_criterio) {
                 <p-tag [value]="c.descripcion + ' (' + c.ponderacion + '%)'" severity="info" />
               }
               @empty {
@@ -79,6 +79,13 @@
               }
             </div>
             <div class="task-actions">
+              <p-button
+                label="Casos Prueba"
+                icon="pi pi-vial"
+                variant="outlined"
+                size="small"
+                (onClick)="loadTestCases(task.id_tarea)"
+              />
               <p-button
                 label="Ver Intentos"
                 icon="pi pi-eye"
@@ -278,5 +285,45 @@
         </tr>
       </ng-template>
     </p-table>
+  </p-dialog>
+
+  <p-dialog
+    [(visible)]="showTestCasesDialog"
+    header="Casos de Prueba"
+    [modal]="true"
+    [style]="{ width: '700px' }"
+  >
+    @if (testCases().length > 0) {
+      <p-table [value]="testCases()" responsiveLayout="scroll">
+        <ng-template pTemplate="header">
+          <tr>
+            <th>#</th>
+            <th>Descripción</th>
+            <th>Entrada</th>
+            <th>Salida Esperada</th>
+            <th>Tiempo</th>
+            <th>Obligatorio</th>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-case>
+          <tr>
+            <td>#{{ case.id_caso }}</td>
+            <td>{{ case.descripcion || '—' }}</td>
+            <td><code>{{ case.entrada_datos || '(vacío)' }}</code></td>
+            <td><code>{{ case.salida_esperada }}</code></td>
+            <td>{{ case.tiempo_limite_ms }}ms</td>
+            <td>
+              @if (case.es_obligatorio) {
+                <p-tag severity="warn" value="Sí" />
+              } @else {
+                <p-tag severity="info" value="No" />
+              }
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+    } @else {
+      <p class="empty-state">No hay casos de prueba registrados.</p>
+    }
   </p-dialog>
 </div>

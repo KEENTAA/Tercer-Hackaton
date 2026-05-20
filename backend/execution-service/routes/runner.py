@@ -16,9 +16,9 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.database import get_db
-from app.models import CasoPrueba, ResultadoEjecucion
-from app.schemas import (
+from database import get_db
+from models import CasoPrueba, ResultadoEjecucion
+from schemas import (
     CasoPruebaCreateBatch,
     CasoPruebaResponse,
     EjecucionRequest,
@@ -26,8 +26,8 @@ from app.schemas import (
     DetalleResultadoCaso,
     ResultadoEjecucionResponse,
 )
-from app.sandbox.executor import SandboxExecutor, ResultadoCaso
-from app.core.config import get_settings
+from sandbox.executor import SandboxExecutor, ResultadoCaso
+from core.config import get_settings
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/runner", tags=["Runner - Motor de Ejecución"])

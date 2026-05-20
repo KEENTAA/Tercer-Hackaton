@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from sqlalchemy import Boolean, Index, Integer, String, Text, DateTime
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.database import Base
+from database import Base
 
 
 class CasoPrueba(Base):

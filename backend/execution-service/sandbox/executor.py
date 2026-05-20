@@ -79,7 +79,6 @@ SIMBOLOS_BLOQUEADOS_PYTHON = {
     "compile",
     "open",
     "__import__",
-    "input",
 }
 
 

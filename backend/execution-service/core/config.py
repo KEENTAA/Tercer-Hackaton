@@ -17,9 +17,9 @@ class Settings(BaseSettings):
 
     # --- Seguridad y Base de Datos ---
     DATABASE_URL: str
-    SECRET_KEY: str
-    ALGORITHM: str
-    ACCESS_TOKEN_EXPIRE_MINUTES: int
+    SECRET_KEY: str = "dev-secret-key"
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
     # --- Límites del sandbox (Motor de ejecución) ---
     SANDBOX_MAX_TIMEOUT_MS: int = 10000
@@ -27,7 +27,7 @@ class Settings(BaseSettings):
 
     # Busca el archivo .env en la raíz del proyecto (Sintaxis moderna Pydantic V2)
     model_config = SettingsConfigDict(
-        env_file=os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".env"),
+        env_file=os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), ".env"),
         extra="ignore",
         case_sensitive=False
     )

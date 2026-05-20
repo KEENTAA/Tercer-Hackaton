@@ -9,7 +9,7 @@ from typing import Generator
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
-from app.core.config import get_settings
+from core.config import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +75,7 @@ def init_db() -> None:
     """
     try:
         # Importar modelos para que SQLAlchemy los registre en Base.metadata
-        from app import models  # noqa: F401
+        import models  # noqa: F401
 
         # Crear todas las tablas
         Base.metadata.create_all(bind=engine)
