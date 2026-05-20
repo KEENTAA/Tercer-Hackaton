@@ -1,56 +1,56 @@
-version: "3.9"
+version: '3.8'
 
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: postgres-ms2
+  db:
+    image: postgres:16
+    container_name: postgres-db
+    restart: always
     environment:
-      POSTGRES_USER: runner_user
-      POSTGRES_PASSWORD: runner_pass
-      POSTGRES_DB: db_code_runner
-      POSTGRES_INITDB_ARGS: "--encoding=UTF8"
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U runner_user -d db_code_runner"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - ms2_network
 
-  ms-code-runner:
+  execution-service:
     build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: ms-code-runner
+      context: ./backend/execution-service
+    container_name: execution-service
+    depends_on:
+      - db
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - SECRET_KEY=${SECRET_KEY}
+      - ALGORITHM=${ALGORITHM}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES}
+    expose:
+      - "8000"
+
+  plagiarism-service:
+    build:
+      context: ./backend/plagiarism-service
+    container_name: plagiarism-service
+    depends_on:
+      - db
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+    expose:
+      - "8000"
+
+  gateway:
+    build:
+      context: ./backend/gateway
+    container_name: api-gateway
     ports:
       - "8000:8000"
-    environment:
-      APP_NAME: "MS2 - Motor de Ejecución y Evaluación"
-      APP_VERSION: "1.0.0"
-      APP_ENV: development
-      APP_HOST: "0.0.0.0"
-      APP_PORT: 8000
-      DATABASE_URL: "postgresql://runner_user:runner_pass@postgres:5432/db_code_runner"
-      SANDBOX_MAX_TIMEOUT_MS: 10000
-      SANDBOX_MAX_MEMORY_KB: 65536
     depends_on:
-      postgres:
-        condition: service_healthy
-    volumes:
-      - .:/app
-    networks:
-      - ms2_network
-    command: >
-      sh -c "pip install -q -e . &&
-             uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+      - execution-service
+      - plagiarism-service
+    environment:
+      - EXECUTION_SERVICE_URL=${EXECUTION_SERVICE_URL}
+      - PLAGIARISM_SERVICE_URL=${PLAGIARISM_SERVICE_URL}
 
 volumes:
   postgres_data:
-
-networks:
-  ms2_network:
-    driver: bridge
