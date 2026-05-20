@@ -8,155 +8,182 @@ import { AttemptStatus, AuditAction, PlagiarismStatus } from '../models';
 
 const MOCK_DELAY_MS = 500;
 
-function paginated<T>(data: T[], page: number, pageSize: number) {
-  const start = (page - 1) * pageSize;
-  return {
-    data: data.slice(start, start + pageSize),
-    total: data.length,
-    page,
-    pageSize,
-  };
+function getSessionUser() {
+  const raw = localStorage.getItem('frog_user');
+  return raw ? JSON.parse(raw) : null;
 }
 
-function wrap<T>(data: T) {
-  return { data };
+function setSessionUser(user: any) {
+  localStorage.setItem('frog_user', JSON.stringify(user));
+  localStorage.setItem('frog_token', `mock-token-${user.id_usuario}`);
+}
+
+function clearSession() {
+  localStorage.removeItem('frog_user');
+  localStorage.removeItem('frog_token');
+}
+
+function paginated<T>(data: T[], skip: number, limit: number) {
+  return data.slice(skip, skip + limit);
+}
+
+function extractPath(url: string): string | null {
+  if (url.startsWith(env.apiBaseUrl)) {
+    return url.replace(env.apiBaseUrl, '');
+  }
+  if (url.startsWith(env.plagiarismBaseUrl)) {
+    return url.replace(env.plagiarismBaseUrl, '');
+  }
+  return null;
 }
 
 function handleRequest(method: string, url: string, body: unknown): { status: number; body: unknown } | null {
-  const base = env.apiUrl;
-  const path = url.replace(base, '');
+  const path = extractPath(url);
+  if (!path) return null;
 
   // ── AUTH ──
-  if (method === 'POST' && path === '/auth/login') {
+  if (method === 'POST' && path === '/api/auth/login') {
     const req = body as { codigo_universitario: string; password: string };
     const found = MOCK_USERS.find(
       (u) => u.codigo_universitario === req.codigo_universitario && u.password === req.password,
     );
     if (!found) {
-      return { status: 401, body: { message: 'Credenciales incorrectas' } };
+      return { status: 401, body: { detail: 'Credenciales incorrectas' } };
     }
+    setSessionUser(found.user);
     return {
       status: 200,
-      body: { token: `mock-token-${found.user.id_usuario}`, user: found.user },
+      body: { access_token: `mock-token-${found.user.id_usuario}`, token_type: 'bearer' },
     };
   }
 
-  if (method === 'POST' && path === '/auth/register') {
-    return { status: 201, body: { data: (body as any) } };
+  if (method === 'POST' && path === '/api/auth/registro') {
+    const newUser = { ...(body as any), id_usuario: mockDb.courses.length + 100 };
+    return { status: 201, body: newUser };
   }
 
-  // ── COURSES ──
-  if (method === 'GET' && path === '/courses') {
-    return { status: 200, body: paginated(mockDb.courses, 1, 20) };
+  if (method === 'GET' && path === '/api/auth/me') {
+    const user = getSessionUser();
+    if (!user) return { status: 401, body: { detail: 'No autenticado' } };
+    return { status: 200, body: user };
   }
 
-  if (method === 'GET' && path.match(/^\/courses\/student\/(\d+)$/)) {
-    return { status: 200, body: wrap(mockDb.courses) };
+  if (method === 'PUT' && path === '/api/auth/me') {
+    const user = getSessionUser();
+    if (!user) return { status: 401, body: { detail: 'No autenticado' } };
+    const updated = { ...user, ...(body as any) };
+    setSessionUser(updated);
+    return { status: 200, body: updated };
   }
 
-  if (method === 'GET' && path.match(/^\/courses\/(\d+)$/)) {
+  // ── COURSES (Professor) ──
+  if (method === 'GET' && path === '/api/profesor/cursos') {
+    const urlObj = new URL(url);
+    const skip = parseInt(urlObj.searchParams.get('skip') || '0');
+    const limit = parseInt(urlObj.searchParams.get('limit') || '100');
+    return { status: 200, body: paginated(mockDb.courses, skip, limit) };
+  }
+
+  if (method === 'POST' && path === '/api/profesor/cursos') {
+    const course = mockDb.addCourse(body as any);
+    return { status: 201, body: course };
+  }
+
+  if (method === 'PUT' && path.match(/^\/api\/profesor\/cursos\/\d+$/)) {
     const id = parseInt(path.split('/').pop()!);
     const course = mockDb.courses.find((c) => c.id_curso === id);
-    return course ? { status: 200, body: wrap(course) } : { status: 404, body: { message: 'Not found' } };
+    if (!course) return { status: 404, body: { detail: 'Curso no encontrado' } };
+    const updates = body as any;
+    Object.assign(course, updates);
+    return { status: 200, body: course };
   }
 
-  if (method === 'POST' && path === '/courses') {
-    const course = mockDb.addCourse(body as any);
-    return { status: 201, body: wrap(course) };
+  if (method === 'DELETE' && path.match(/^\/api\/profesor\/cursos\/\d+$/)) {
+    const id = parseInt(path.split('/').pop()!);
+    mockDb.courses = mockDb.courses.filter((c) => c.id_curso !== id);
+    return { status: 200, body: null };
   }
 
-  // ── TASKS ──
-  if (method === 'GET' && path === '/tasks') {
-    return { status: 200, body: paginated(mockDb.tasks, 1, 20) };
+  if (method === 'GET' && path === '/api/profesor/estudiantes') {
+    const urlObj = new URL(url);
+    const skip = parseInt(urlObj.searchParams.get('skip') || '0');
+    const limit = parseInt(urlObj.searchParams.get('limit') || '100');
+    const students = MOCK_USERS.filter((u) => u.user.rol === 'ESTUDIANTE').map((u) => u.user);
+    return { status: 200, body: paginated(students, skip, limit) };
   }
 
-  if (method === 'GET' && path.match(/^\/tasks\/course\/(\d+)$/)) {
-    const courseId = parseInt(path.split('/').pop()!);
+  // ── TASKS (Professor) ──
+  if (method === 'GET' && path.match(/^\/api\/profesor\/cursos\/\d+\/tareas$/)) {
+    const courseId = parseInt(path.split('/')[4]);
+    const urlObj = new URL(url);
+    const skip = parseInt(urlObj.searchParams.get('skip') || '0');
+    const limit = parseInt(urlObj.searchParams.get('limit') || '50');
     const tasks = mockDb.tasks.filter((t) => t.id_curso === courseId);
-    return { status: 200, body: wrap(tasks) };
+    return { status: 200, body: paginated(tasks, skip, limit) };
   }
 
-  if (method === 'GET' && path.match(/^\/tasks\/(\d+)$/)) {
+  if (method === 'POST' && path === '/api/profesor/tareas') {
+    const taskBody = body as any;
+    const task = mockDb.addTask({
+      id_tarea: 0,
+      id_curso: taskBody.id_curso,
+      titulo: taskBody.titulo,
+      descripcion: taskBody.descripcion,
+      fecha_limite: taskBody.fecha_limite,
+      criterios: taskBody.criterios?.map((c: any, i: number) => ({
+        id_criterio: 0,
+        id_tarea: 0,
+        descripcion: c.descripcion,
+        ponderacion: c.ponderacion,
+      })),
+    });
+    if (taskBody.criterios) {
+      for (const c of taskBody.criterios) {
+        mockDb.addCriterion({
+          id_criterio: 0,
+          id_tarea: task.id_tarea,
+          descripcion: c.descripcion,
+          ponderacion: c.ponderacion,
+        });
+      }
+    }
+    return { status: 201, body: task };
+  }
+
+  if (method === 'PUT' && path.match(/^\/api\/profesor\/tareas\/\d+$/)) {
     const id = parseInt(path.split('/').pop()!);
     const task = mockDb.tasks.find((t) => t.id_tarea === id);
-    return task ? { status: 200, body: wrap(task) } : { status: 404, body: { message: 'Not found' } };
+    if (!task) return { status: 404, body: { detail: 'Tarea no encontrada' } };
+    Object.assign(task, body as any);
+    return { status: 200, body: task };
   }
 
-  if (method === 'POST' && path === '/tasks') {
-    const task = mockDb.addTask(body as any);
-    return { status: 201, body: wrap(task) };
-  }
-
-  if (method === 'DELETE' && path.match(/^\/tasks\/(\d+)$/)) {
+  if (method === 'DELETE' && path.match(/^\/api\/profesor\/tareas\/\d+$/)) {
     const id = parseInt(path.split('/').pop()!);
     mockDb.tasks = mockDb.tasks.filter((t) => t.id_tarea !== id);
     return { status: 200, body: null };
   }
 
-  // ── CRITERIA ──
-  if (method === 'GET' && path.match(/^\/tasks\/(\d+)\/criteria$/)) {
-    const taskId = parseInt(path.split('/')[2]);
-    const criteria = mockDb.criteria.filter((c) => c.id_tarea === taskId);
-    return { status: 200, body: wrap(criteria) };
-  }
-
-  if (method === 'POST' && path.match(/^\/tasks\/(\d+)\/criteria$/)) {
-    const taskId = parseInt(path.split('/')[2]);
-    const criterion = mockDb.addCriterion({ ...(body as any), id_tarea: taskId });
-    return { status: 201, body: wrap(criterion) };
-  }
-
-  if (method === 'DELETE' && path.match(/^\/tasks\/\d+\/criteria\/(\d+)$/)) {
-    const criterionId = parseInt(path.split('/').pop()!);
-    mockDb.criteria = mockDb.criteria.filter((c) => c.id_criterio !== criterionId);
-    return { status: 200, body: null };
+  // ── TASKS (Student) ──
+  if (method === 'GET' && path.match(/^\/api\/estudiante\/tareas\/\d+$/)) {
+    const courseId = parseInt(path.split('/').pop()!);
+    const urlObj = new URL(url);
+    const skip = parseInt(urlObj.searchParams.get('skip') || '0');
+    const limit = parseInt(urlObj.searchParams.get('limit') || '50');
+    const tasks = mockDb.tasks.filter((t) => t.id_curso === courseId);
+    return { status: 200, body: paginated(tasks, skip, limit) };
   }
 
   // ── ATTEMPTS ──
-  if (method === 'GET' && path === '/attempts') {
-    return { status: 200, body: paginated(mockDb.attempts, 1, 20) };
+  if (method === 'GET' && path === '/api/estudiante/intentos') {
+    const urlObj = new URL(url);
+    const skip = parseInt(urlObj.searchParams.get('skip') || '0');
+    const limit = parseInt(urlObj.searchParams.get('limit') || '50');
+    return { status: 200, body: paginated(mockDb.attempts, skip, limit) };
   }
 
-  if (method === 'GET' && path.match(/^\/attempts\/student\/(\d+)$/)) {
-    const studentId = parseInt(path.split('/').pop()!);
-    const attempts = mockDb.attempts.filter((a) => a.id_estudiante === studentId);
-    return { status: 200, body: wrap(attempts) };
-  }
-
-  if (method === 'GET' && path.match(/^\/attempts\/task\/(\d+)$/)) {
-    const taskId = parseInt(path.split('/').pop()!);
-    const attempts = mockDb.attempts.filter((a) => a.id_tarea === taskId);
-    return { status: 200, body: wrap(attempts) };
-  }
-
-  if (method === 'GET' && path.match(/^\/attempts\/(\d+)$/)) {
-    const id = parseInt(path.split('/').pop()!);
-    const attempt = mockDb.attempts.find((a) => a.id_intento === id);
-    if (!attempt) return { status: 404, body: { message: 'Not found' } };
-
-    const calificaciones = mockDb.gradesByCriterion.filter((g) => g.id_intento === id);
-    const ejecucion = mockDb.executionResults.find((r) => r.id_intento_ref === id);
-    const plagio = mockDb.plagiarismReports.find((r) => r.id_intento_ref === id);
-    const coincidencias = plagio
-      ? mockDb.plagiarismMatches.filter((m) => m.id_reporte === plagio.id_reporte)
-      : [];
-
-    return {
-      status: 200,
-      body: wrap({
-        ...attempt,
-        calificaciones,
-        ejecucion: ejecucion || undefined,
-        plagio: plagio
-          ? { ...plagio, coincidencias }
-          : undefined,
-      }),
-    };
-  }
-
-  if (method === 'POST' && path === '/attempts') {
+  if (method === 'POST' && path === '/api/estudiante/intentos') {
     const attemptBody = body as { id_tarea: number; url_codigo_fuente: string };
-    const task = mockDb.tasks.find((t) => t.id_tarea === attemptBody.id_tarea);
     const studentAttempts = mockDb.attempts.filter((a) => a.id_tarea === attemptBody.id_tarea);
     const numero = studentAttempts.length + 1;
 
@@ -168,7 +195,7 @@ function handleRequest(method: string, url: string, body: unknown): { status: nu
       nota_total: null,
       estado: AttemptStatus.ENVIADO,
       id_tarea: attemptBody.id_tarea,
-      url_codigo_fuente: '',
+      url_codigo_fuente: attemptBody.url_codigo_fuente,
     });
 
     mockDb.addAuditLog({
@@ -181,43 +208,41 @@ function handleRequest(method: string, url: string, body: unknown): { status: nu
       ejecutado_por: 1,
     });
 
-    return { status: 201, body: wrap(attempt) };
+    return { status: 201, body: attempt };
   }
 
-  if (method === 'POST' && path.match(/^\/attempts\/(\d+)\/upload$/)) {
-    const id = parseInt(path.split('/')[2]);
+  if (method === 'PUT' && path.match(/^\/api\/estudiante\/intentos\/\d+$/)) {
+    const id = parseInt(path.split('/').pop()!);
     const attempt = mockDb.attempts.find((a) => a.id_intento === id);
-    if (!attempt) return { status: 404, body: { message: 'Not found' } };
-    return { status: 200, body: wrap(attempt) };
+    if (!attempt) return { status: 404, body: { detail: 'Intento no encontrado' } };
+    const urlObj = new URL(url);
+    const nuevaUrl = urlObj.searchParams.get('nueva_url');
+    if (nuevaUrl) attempt.url_codigo_fuente = nuevaUrl;
+    return { status: 200, body: attempt };
   }
 
-  // ── PLAGIARISM ──
-  if (method === 'GET' && path === '/plagiarism') {
-    return { status: 200, body: paginated(mockDb.plagiarismReports, 1, 20) };
+  if (method === 'DELETE' && path.match(/^\/api\/estudiante\/intentos\/\d+$/)) {
+    const id = parseInt(path.split('/').pop()!);
+    mockDb.attempts = mockDb.attempts.filter((a) => a.id_intento !== id);
+    return { status: 200, body: null };
   }
 
-  if (method === 'GET' && path.match(/^\/plagiarism\/attempt\/(\d+)$/)) {
-    const attemptId = parseInt(path.split('/').pop()!);
-    const report = mockDb.plagiarismReports.find((r) => r.id_intento_ref === attemptId);
-    if (!report) return { status: 200, body: { data: null } };
-    const coincidencias = mockDb.plagiarismMatches.filter((m) => m.id_reporte === report.id_reporte);
-    return { status: 200, body: wrap({ ...report, coincidencias }) };
-  }
-
-  if (method === 'GET' && path.match(/^\/plagiarism\/task\/(\d+)$/)) {
+  // ── PLAGIARISM (mock endpoints - real ones pass through) ──
+  if (method === 'GET' && path.match(/^\/api\/plagiarism\/task\/\d+$/)) {
     const taskId = parseInt(path.split('/').pop()!);
     const attemptIds = mockDb.attempts.filter((a) => a.id_tarea === taskId).map((a) => a.id_intento);
     const reports = mockDb.plagiarismReports.filter((r) => attemptIds.includes(r.id_intento_ref));
-    return { status: 200, body: wrap(reports) };
+    return { status: 200, body: reports };
   }
 
-  if (method === 'GET' && path === '/plagiarism/high-risk') {
-    const threshold = parseInt(new URL(url).searchParams.get('threshold') || '70');
+  if (method === 'GET' && path === '/api/plagiarism/high-risk') {
+    const urlObj = new URL(url);
+    const threshold = parseInt(urlObj.searchParams.get('threshold') || '70');
     const reports = mockDb.plagiarismReports.filter((r) => r.porcentaje_similitud_total >= threshold);
-    return { status: 200, body: wrap(reports) };
+    return { status: 200, body: reports };
   }
 
-  if (method === 'POST' && path.match(/^\/plagiarism\/analyze\/(\d+)$/)) {
+  if (method === 'POST' && path.match(/^\/api\/plagiarism\/analyze\/\d+$/)) {
     const attemptId = parseInt(path.split('/').pop()!);
     const report = mockDb.addPlagiarismReport({
       id_reporte: 0,
@@ -227,33 +252,23 @@ function handleRequest(method: string, url: string, body: unknown): { status: nu
       estado_analisis: PlagiarismStatus.COMPLETADO,
       fecha_analisis: new Date().toISOString(),
     });
-    return { status: 201, body: wrap(report) };
+    return { status: 201, body: report };
+  }
+
+  if (method === 'GET' && path.match(/^\/api\/plagiarism\/attempt\/\d+$/)) {
+    const attemptId = parseInt(path.split('/').pop()!);
+    const report = mockDb.plagiarismReports.find((r) => r.id_intento_ref === attemptId);
+    if (!report) return { status: 200, body: null };
+    const coincidencias = mockDb.plagiarismMatches.filter((m) => m.id_reporte === report.id_reporte);
+    return { status: 200, body: { ...report, coincidencias } };
   }
 
   // ── AUDIT ──
-  if (method === 'GET' && path === '/audit') {
-    return { status: 200, body: paginated(mockDb.auditLogs, 1, 50) };
-  }
-
-  if (method === 'GET' && path.match(/^\/audit\/attempt\/(\d+)$/)) {
-    const attemptId = parseInt(path.split('/').pop()!);
-    const logs = mockDb.auditLogs.filter((l) => l.id_intento === attemptId);
-    return { status: 200, body: wrap(logs) };
-  }
-
-  if (method === 'GET' && path === '/audit/range') {
-    const from = new URL(url).searchParams.get('from');
-    const to = new URL(url).searchParams.get('to');
-    let logs = mockDb.auditLogs;
-    if (from) logs = logs.filter((l) => new Date(l.fecha_cambio) >= new Date(from));
-    if (to) logs = logs.filter((l) => new Date(l.fecha_cambio) <= new Date(to));
-    return { status: 200, body: wrap(logs) };
-  }
-
-  if (method === 'GET' && path.match(/^\/audit\/user\/(\d+)$/)) {
-    const userId = parseInt(path.split('/').pop()!);
-    const logs = mockDb.auditLogs.filter((l) => l.ejecutado_por === userId);
-    return { status: 200, body: wrap(logs) };
+  if (method === 'GET' && path === '/api/profesor/auditoria') {
+    const urlObj = new URL(url);
+    const skip = parseInt(urlObj.searchParams.get('skip') || '0');
+    const limit = parseInt(urlObj.searchParams.get('limit') || '50');
+    return { status: 200, body: paginated(mockDb.auditLogs, skip, limit) };
   }
 
   return null;
