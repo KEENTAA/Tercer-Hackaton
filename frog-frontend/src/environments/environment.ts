@@ -3,5 +3,6 @@ export const env = {
   useMocks: true,
   apiUrl: 'http://localhost:8000',
   apiBaseUrl: 'http://localhost:8000',
-  runnerBaseUrl: 'http://localhost:8001/api/v1',
+  runnerBaseUrl: 'http://localhost:8000/api/v1',
+  plagiarismBaseUrl: 'http://localhost:8001',
 };

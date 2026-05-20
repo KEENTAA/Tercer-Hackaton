@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { env } from '../../../environments/environment';
 import { PlagiarismReport, PlagiarismReportWithMatches } from '@core/models';
@@ -7,35 +7,39 @@ import { PlagiarismReport, PlagiarismReportWithMatches } from '@core/models';
 @Injectable({ providedIn: 'root' })
 export class PlagiarismService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = env.apiBaseUrl;
+  private readonly apiUrl = env.plagiarismBaseUrl;
 
   async getByAttempt(attemptId: number): Promise<PlagiarismReportWithMatches | null> {
     return firstValueFrom(
       this.http.get<PlagiarismReportWithMatches | null>(
-        `${this.apiUrl}/api/plagiarism/attempt/${attemptId}`,
+        `${this.apiUrl}/resultado/${attemptId}`,
       ),
     );
   }
 
   async getByTask(taskId: number): Promise<PlagiarismReport[]> {
     return firstValueFrom(
-      this.http.get<PlagiarismReport[]>(`${this.apiUrl}/api/plagiarism/task/${taskId}`),
+      this.http.get<PlagiarismReport[]>(
+        `${env.apiBaseUrl}/api/plagiarism/task/${taskId}`,
+      ),
     );
   }
 
-  async triggerAnalysis(attemptId: number): Promise<PlagiarismReport> {
+  async triggerAnalysis(attemptId: number): Promise<{ message: string; id_intento: number }> {
     return firstValueFrom(
-      this.http.post<PlagiarismReport>(
-        `${this.apiUrl}/api/plagiarism/analyze/${attemptId}`,
-        {},
+      this.http.post<{ message: string; id_intento: number }>(
+        `${this.apiUrl}/analizar`,
+        { id_intento: attemptId },
       ),
     );
   }
 
   async getHighRiskReports(threshold = 70): Promise<PlagiarismReport[]> {
+    const params = new HttpParams().set('threshold', threshold.toString());
     return firstValueFrom(
       this.http.get<PlagiarismReport[]>(
-        `${this.apiUrl}/api/plagiarism/high-risk?threshold=${threshold}`,
+        `${env.apiBaseUrl}/api/plagiarism/high-risk`,
+        { params },
       ),
     );
   }
