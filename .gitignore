@@ -1,0 +1,43 @@
+# Entorno virtual
+venv/
+.venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+
+# Variables de entorno
+.env
+.env.*
+
+# Logs
+*.log
+
+# Archivos de base de datos
+*.sqlite3
+*.db
+
+# Caché y testing
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+
+# IDEs
+.vscode/
+.idea/
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Alembic cache
+alembic/__pycache__/
+
+# Archivos temporales
+*.tmp
+*.temp
