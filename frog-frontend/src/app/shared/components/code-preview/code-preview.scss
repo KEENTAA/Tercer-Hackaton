@@ -1,0 +1,59 @@
+.code-preview {
+  border: 1px solid var(--surface-200);
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background: var(--surface-900);
+}
+
+.code-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background: var(--surface-800);
+  border-bottom: 1px solid var(--surface-700);
+}
+
+.filename {
+  font-size: 0.75rem;
+  color: var(--surface-300);
+  font-family: monospace;
+}
+
+.lang-badge {
+  font-size: 0.625rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  background: var(--primary-600);
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.code-block {
+  margin: 0;
+  padding: 1rem;
+  overflow-x: auto;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  font-family: 'Fira Code', 'JetBrains Mono', 'Consolas', monospace;
+  color: var(--surface-100);
+}
+
+.code-keyword {
+  color: #c678dd;
+  font-weight: 500;
+}
+
+.code-string {
+  color: #98c379;
+}
+
+.code-comment {
+  color: #5c6370;
+  font-style: italic;
+}
+
+.code-number {
+  color: #d19a66;
+}

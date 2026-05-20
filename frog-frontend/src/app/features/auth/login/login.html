@@ -1,0 +1,61 @@
+<div class="login-container">
+  <p-toast></p-toast>
+
+  <p-card class="login-card">
+    <ng-template pTemplate="header">
+      <div class="login-header">
+        <i class="pi pi-frog-fill logo-icon"></i>
+        <h1>Frog Grading</h1>
+        <p class="subtitle">Sistema de Calificación de Código</p>
+      </div>
+    </ng-template>
+
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
+      <div class="field">
+        <label for="codigo">Código Universitario</label>
+        <input
+          id="codigo"
+          type="text"
+          pInputText
+          formControlName="codigo_universitario"
+          placeholder="Ej: 2026-1105"
+          fluid
+        />
+        @if (codigo?.invalid && codigo?.touched) {
+          <small class="p-error">El código es requerido</small>
+        }
+      </div>
+
+      <div class="field">
+        <label for="password">Contraseña</label>
+        <p-password
+          id="password"
+          formControlName="password"
+          [toggleMask]="true"
+          [feedback]="false"
+          placeholder="••••••••"
+          fluid
+        />
+        @if (password?.invalid && password?.touched) {
+          <small class="p-error">
+            @if (password?.errors?.['required']) {
+              La contraseña es requerida
+            }
+            @if (password?.errors?.['minlength']) {
+              Mínimo 6 caracteres
+            }
+          </small>
+        }
+      </div>
+
+      <p-button
+        type="submit"
+        label="Ingresar"
+        icon="pi pi-sign-in"
+        [loading]="loading()"
+        [disabled]="loginForm.invalid || loading()"
+        fluid
+      />
+    </form>
+  </p-card>
+</div>

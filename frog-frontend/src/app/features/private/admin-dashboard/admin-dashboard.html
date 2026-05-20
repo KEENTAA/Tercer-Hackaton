@@ -1,0 +1,89 @@
+<div class="dashboard">
+  <p-toast></p-toast>
+
+  <h2 class="page-title">Panel de Administración</h2>
+
+  <p-tabs value="0">
+    <p-tablist>
+      <p-tab value="0">Auditoría</p-tab>
+      <p-tab value="1">Plagio - Alto Riesgo</p-tab>
+    </p-tablist>
+
+    <p-tabpanels>
+      <p-tabpanel value="0">
+        <div class="tab-header">
+          <h3>Historial de Auditoría</h3>
+          <p-button
+            label="Actualizar"
+            icon="pi pi-refresh"
+            variant="outlined"
+            size="small"
+            (onClick)="loadAuditLogs()"
+          />
+        </div>
+
+        <p-table [value]="auditLogs()" responsiveLayout="scroll">
+          <ng-template pTemplate="header">
+            <tr>
+              <th>Acción</th>
+              <th>Fecha</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-log>
+            <tr>
+              <td>{{ log | json }}</td>
+              <td>—</td>
+            </tr>
+          </ng-template>
+        </p-table>
+
+        @if (auditLogs().length === 0) {
+          <p class="empty-state">No hay registros de auditoría.</p>
+        }
+      </p-tabpanel>
+
+      <p-tabpanel value="1">
+        <div class="tab-header">
+          <h3>Reportes de Plagio - Alto Riesgo (≥70%)</h3>
+          <p-button
+            label="Actualizar"
+            icon="pi pi-refresh"
+            variant="outlined"
+            size="small"
+            (onClick)="loadHighRiskReports()"
+          />
+        </div>
+
+        <p-table [value]="highRiskReports()" responsiveLayout="scroll">
+          <ng-template pTemplate="header">
+            <tr>
+              <th>Reporte</th>
+              <th>Intento</th>
+              <th>Similitud</th>
+              <th>Estado</th>
+              <th>Fecha</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-report>
+            <tr>
+              <td>#{{ report.id_reporte }}</td>
+              <td>#{{ report.id_intento_ref }}</td>
+              <td>
+                <p-tag
+                  [severity]="getRiskLevel(report.porcentaje_similitud_total)"
+                  [value]="report.porcentaje_similitud_total + '%'"
+                ></p-tag>
+              </td>
+              <td>{{ report.estado_analisis }}</td>
+              <td>{{ report.fecha_analisis | date: 'dd/MM/yyyy HH:mm' }}</td>
+            </tr>
+          </ng-template>
+        </p-table>
+
+        @if (highRiskReports().length === 0) {
+          <p class="empty-state">No hay reportes de alto riesgo.</p>
+        }
+      </p-tabpanel>
+    </p-tabpanels>
+  </p-tabs>
+</div>
