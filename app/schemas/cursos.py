@@ -6,7 +6,7 @@ class CursoBase(BaseModel):
     gestion: str
 
 class CursoCreate(CursoBase):
-    id_profesor: int
+    pass
 
 class CursoUpdate(BaseModel):
     nombre: str | None = None

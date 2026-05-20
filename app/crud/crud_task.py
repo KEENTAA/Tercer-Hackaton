@@ -19,16 +19,22 @@ def get_cursos_by_profesor(db: Session, profesor_id: int):
     """Filtra las aulas virtuales asignadas a un docente."""
     return db.query(Curso).filter(Curso.id_profesor == profesor_id).all()
 
-def create_curso(db: Session, curso: CursoCreate):
+def create_curso(
+    db: Session,
+    curso: CursoCreate,
+    id_profesor: int
+):
     db_curso = Curso(
         codigo_curso=curso.codigo_curso,
         nombre=curso.nombre,
         gestion=curso.gestion,
-        id_profesor=curso.id_profesor
+        id_profesor=id_profesor
     )
+
     db.add(db_curso)
     db.commit()
     db.refresh(db_curso)
+
     return db_curso
 
 def update_curso(db: Session, curso_id: int, curso_in: CursoUpdate):

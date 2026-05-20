@@ -47,13 +47,16 @@ def listar_mis_cursos(
 
 @router.post("/cursos", response_model=CursoResponse, status_code=status.HTTP_201_CREATED)
 def crear_nuevo_curso(
-    curso: CursoCreate, 
-    db: Session = Depends(get_db), 
+    curso: CursoCreate,
+    db: Session = Depends(get_db),
     current_user: Usuario = Depends(require_profesor)
 ):
     """Crea una nueva aula virtual."""
-    curso.id_profesor = current_user.id_usuario
-    return crud_task.create_curso(db=db, curso=curso)
+    return crud_task.create_curso(
+        db=db,
+        curso=curso,
+        id_profesor=current_user.id_usuario
+    )
 
 @router.put("/cursos/{id_curso}", response_model=CursoResponse)
 def actualizar_curso(
