@@ -189,9 +189,11 @@ npm run dev
 
 | Documento | Descripción |
 |-----------|-------------|
+| [**RUNNING_GUIDE.md**](RUNNING_GUIDE.md) | ⭐ **CÓMO CORRER EL PROYECTO** (empieza aquí) |
+| [QUICK_START.md](QUICK_START.md) | Inicio rápido y flujos de ejemplo |
 | [ARQUITECTURA.md](docs/ARQUITECTURA.md) | Diseño general del sistema |
 | [EVENT_DRIVEN_ARCHITECTURE.md](EVENT_DRIVEN_ARCHITECTURE.md) | Explicación eventos y RabbitMQ |
-| [INSTALLATION_GUIDE.md](INSTALLATION_GUIDE.md) | Instalación y ejecución |
+| [INSTALLATION_GUIDE.md](INSTALLATION_GUIDE.md) | Instalación detallada |
 | [NEXT_STEPS.md](NEXT_STEPS.md) | Roadmap y próximas implementaciones |
 | [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) | Despliegue en producción |
 
