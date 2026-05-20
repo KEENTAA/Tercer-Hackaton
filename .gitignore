@@ -1,43 +1,65 @@
-# Entorno virtual
-venv/
-.venv/
-env/
-
-# Python
+# Python y Dependencias
 __pycache__/
 *.py[cod]
 *$py.class
-*.pyo
-*.pyd
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+alembic/__pycache__/
 
-# Variables de entorno
+# Entornos Virtuales
+venv/
+.venv/
+env/
+ENV/
+
+# Variables de Entorno
 .env
 .env.*
+.env.local
 
-# Logs
-*.log
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 
-# Archivos de base de datos
-*.sqlite3
-*.db
-
-# Caché y testing
+# Testing y Caché
 .pytest_cache/
 .coverage
 htmlcov/
 .mypy_cache/
 
-# IDEs
-.vscode/
-.idea/
+# Bases de Datos
+*.db
+*.sqlite
+*.sqlite3
 
-# Sistema
+# Docker
+.dockerignore
+
+# Sistema (OS)
 .DS_Store
 Thumbs.db
 
-# Alembic cache
-alembic/__pycache__/
-
-# Archivos temporales
+# Logs y Temporales
+*.log
 *.tmp
 *.temp
+tmp/
+temp/

@@ -1,0 +1,223 @@
+###
+### ARCHIVO DE PRUEBAS REST PARA MS2
+### Uso: Abrir con extensión "REST Client" en VS Code
+### https://marketplace.visualstudio.com/items?itemName=humao.rest-client
+###
+
+@baseUrl = http://localhost:8000/api/v1/runner
+@baseUrlHealth = http://localhost:8000
+
+### ═════════════════════════════════════════════════════════════════
+### TESTS INICIALES
+### ═════════════════════════════════════════════════════════════════
+
+### Health Check
+GET @baseUrlHealth/health
+
+###
+
+### Info del servicio
+GET @baseUrlHealth/
+
+###
+
+### ═════════════════════════════════════════════════════════════════
+### CASOS DE PRUEBA
+### ═════════════════════════════════════════════════════════════════
+
+### EP1: Crear casos de prueba (BATCH)
+POST @baseUrl/test-cases
+Content-Type: application/json
+
+{
+  "casos": [
+    {
+      "id_tarea_ref": 42,
+      "entrada_datos": "5 3",
+      "salida_esperada": "8",
+      "tiempo_limite_ms": 3000,
+      "descripcion": "Suma de dos números",
+      "es_obligatorio": true
+    },
+    {
+      "id_tarea_ref": 42,
+      "entrada_datos": "100 200",
+      "salida_esperada": "300",
+      "tiempo_limite_ms": 3000,
+      "descripcion": "Suma de números grandes",
+      "es_obligatorio": true
+    },
+    {
+      "id_tarea_ref": 42,
+      "entrada_datos": "-5 10",
+      "salida_esperada": "5",
+      "tiempo_limite_ms": 3000,
+      "descripcion": "Suma con números negativos",
+      "es_obligatorio": false
+    }
+  ]
+}
+
+###
+
+### EP2: Listar casos de una tarea
+GET @baseUrl/test-cases/assignment/42
+
+###
+
+### ═════════════════════════════════════════════════════════════════
+### EJECUCIÓN DE CÓDIGO
+### ═════════════════════════════════════════════════════════════════
+
+### EP3: Ejecutar Python (EXITOSO)
+POST @baseUrl/execute
+Content-Type: application/json
+
+{
+  "id_intento_ref": 1001,
+  "id_tarea_ref": 42,
+  "lenguaje": "python",
+  "codigo_fuente": "a, b = map(int, input().split())\nprint(a + b)"
+}
+
+###
+
+### EP3: Ejecutar Python (FALLIDO - Salida incorrecta)
+POST @baseUrl/execute
+Content-Type: application/json
+
+{
+  "id_intento_ref": 1002,
+  "id_tarea_ref": 42,
+  "lenguaje": "python",
+  "codigo_fuente": "a, b = map(int, input().split())\nprint(a * b)"
+}
+
+###
+
+### EP3: Ejecutar Python (ERROR - Módulo bloqueado)
+POST @baseUrl/execute
+Content-Type: application/json
+
+{
+  "id_intento_ref": 1003,
+  "id_tarea_ref": 42,
+  "lenguaje": "python",
+  "codigo_fuente": "import os\nos.system('whoami')"
+}
+
+###
+
+### EP3: Ejecutar JavaScript (EXITOSO)
+POST @baseUrl/execute
+Content-Type: application/json
+
+{
+  "id_intento_ref": 1004,
+  "id_tarea_ref": 42,
+  "lenguaje": "javascript",
+  "codigo_fuente": "const input = require('fs').readFileSync(0, 'utf-8').trim();\nconst [a, b] = input.split(' ').map(Number);\nconsole.log(a + b);"
+}
+
+###
+
+### EP3: Ejecutar C (EXITOSO)
+POST @baseUrl/execute
+Content-Type: application/json
+
+{
+  "id_intento_ref": 1005,
+  "id_tarea_ref": 42,
+  "lenguaje": "c",
+  "codigo_fuente": "#include <stdio.h>\nint main() {\n    int a, b;\n    scanf(\"%d %d\", &a, &b);\n    printf(\"%d\\n\", a + b);\n    return 0;\n}"
+}
+
+###
+
+### EP3: Ejecutar C++ (EXITOSO)
+POST @baseUrl/execute
+Content-Type: application/json
+
+{
+  "id_intento_ref": 1006,
+  "id_tarea_ref": 42,
+  "lenguaje": "cpp",
+  "codigo_fuente": "#include <iostream>\nusing namespace std;\nint main() {\n    int a, b;\n    cin >> a >> b;\n    cout << a + b << endl;\n    return 0;\n}"
+}
+
+###
+
+### ═════════════════════════════════════════════════════════════════
+### CONSULTAR RESULTADOS
+### ═════════════════════════════════════════════════════════════════
+
+### EP4: Consultar resultado de un intento
+GET @baseUrl/results/1001
+
+###
+
+### EP5: Listar resultados de una tarea
+GET @baseUrl/results/assignment/42
+
+###
+
+### ═════════════════════════════════════════════════════════════════
+### TESTS DE VALIDACIÓN (Errores esperados)
+### ═════════════════════════════════════════════════════════════════
+
+### Ejecutar sin casos de prueba (404)
+POST @baseUrl/execute
+Content-Type: application/json
+
+{
+  "id_intento_ref": 2000,
+  "id_tarea_ref": 99999,
+  "lenguaje": "python",
+  "codigo_fuente": "print('hola')"
+}
+
+###
+
+### Ejecutar con lenguaje inválido (422)
+POST @baseUrl/execute
+Content-Type: application/json
+
+{
+  "id_intento_ref": 2001,
+  "id_tarea_ref": 42,
+  "lenguaje": "rust",
+  "codigo_fuente": "print('hola')"
+}
+
+###
+
+### Ejecutar con código vacío (422)
+POST @baseUrl/execute
+Content-Type: application/json
+
+{
+  "id_intento_ref": 2002,
+  "id_tarea_ref": 42,
+  "lenguaje": "python",
+  "codigo_fuente": ""
+}
+
+###
+
+### Crear caso con tiempo_limite_ms > 10000 (422)
+POST @baseUrl/test-cases
+Content-Type: application/json
+
+{
+  "casos": [
+    {
+      "id_tarea_ref": 100,
+      "entrada_datos": "test",
+      "salida_esperada": "test",
+      "tiempo_limite_ms": 20000,
+      "descripcion": "Timeout demasiado largo"
+    }
+  ]
+}
+
+###
