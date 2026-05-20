@@ -1,0 +1,282 @@
+version: '3.9'
+
+services:
+  # ============ DATABASES ============
+  
+  auth-db:
+    image: postgres:15-alpine
+    container_name: auth-db
+    environment:
+      POSTGRES_DB: auth_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+    ports:
+      - "5431:5432"
+    volumes:
+      - auth_db_volume:/var/lib/postgresql/data
+    networks:
+      - microservices
+
+  submission-db:
+    image: postgres:15-alpine
+    container_name: submission-db
+    environment:
+      POSTGRES_DB: submission_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+    ports:
+      - "5432:5432"
+    volumes:
+      - submission_db_volume:/var/lib/postgresql/data
+    networks:
+      - microservices
+
+  execution-db:
+    image: postgres:15-alpine
+    container_name: execution-db
+    environment:
+      POSTGRES_DB: execution_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+    ports:
+      - "5433:5432"
+    volumes:
+      - execution_db_volume:/var/lib/postgresql/data
+    networks:
+      - microservices
+
+  grading-db:
+    image: postgres:15-alpine
+    container_name: grading-db
+    environment:
+      POSTGRES_DB: grading_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+    ports:
+      - "5434:5432"
+    volumes:
+      - grading_db_volume:/var/lib/postgresql/data
+    networks:
+      - microservices
+
+  plagiarism-db:
+    image: postgres:15-alpine
+    container_name: plagiarism-db
+    environment:
+      POSTGRES_DB: plagiarism_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+    ports:
+      - "5435:5432"
+    volumes:
+      - plagiarism_db_volume:/var/lib/postgresql/data
+    networks:
+      - microservices
+
+  audit-db:
+    image: postgres:15-alpine
+    container_name: audit-db
+    environment:
+      POSTGRES_DB: audit_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+    ports:
+      - "5436:5432"
+    volumes:
+      - audit_db_volume:/var/lib/postgresql/data
+    networks:
+      - microservices
+
+  # ============ MESSAGE BROKER ============
+  
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"      # AMQP port
+      - "15672:15672"    # Management UI
+    volumes:
+      - rabbitmq_volume:/var/lib/rabbitmq
+    networks:
+      - microservices
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============ CACHE ============
+  
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_volume:/data
+    networks:
+      - microservices
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============ MICROSERVICES ============
+  
+  auth-service:
+    build:
+      context: ./backend/auth-service
+      dockerfile: Dockerfile
+    container_name: auth-service
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres123@auth-db:5432/auth_db
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      JWT_SECRET_KEY: your-super-secret-jwt-key-change-this-in-production
+      JWT_ALGORITHM: HS256
+      JWT_ACCESS_TOKEN_EXPIRE_MINUTES: 60
+      JWT_REFRESH_TOKEN_EXPIRE_DAYS: 7
+    ports:
+      - "8001:8001"
+    depends_on:
+      - auth-db
+      - rabbitmq
+    networks:
+      - microservices
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  submission-service:
+    build:
+      context: ./backend/submission-service
+      dockerfile: Dockerfile
+    container_name: submission-service
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres123@submission-db:5432/submission_db
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      AUTH_SERVICE_URL: http://auth-service:8001
+      ASSIGNMENT_SERVICE_URL: http://assignment-service:8002
+      REDIS_URL: redis://redis:6379/0
+    ports:
+      - "8004:8004"
+    depends_on:
+      - submission-db
+      - rabbitmq
+      - redis
+      - auth-service
+    networks:
+      - microservices
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8004/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  execution-service:
+    build:
+      context: ./backend/execution-service
+      dockerfile: Dockerfile
+    container_name: execution-service
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres123@execution-db:5432/execution_db
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      SUBMISSION_SERVICE_URL: http://submission-service:8004
+      EXECUTION_TIMEOUT_SECONDS: 30
+      SANDBOX_ENABLED: "true"
+    ports:
+      - "8005:8005"
+    depends_on:
+      - execution-db
+      - rabbitmq
+      - submission-service
+    networks:
+      - microservices
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8005/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  grading-service:
+    build:
+      context: ./backend/grading-service
+      dockerfile: Dockerfile
+    container_name: grading-service
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres123@grading-db:5432/grading_db
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      EXECUTION_SERVICE_URL: http://execution-service:8005
+      SUBMISSION_SERVICE_URL: http://submission-service:8004
+    ports:
+      - "8006:8006"
+    depends_on:
+      - grading-db
+      - rabbitmq
+      - execution-service
+    networks:
+      - microservices
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8006/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  plagiarism-service:
+    build:
+      context: ./backend/plagiarism-service
+      dockerfile: Dockerfile
+    container_name: plagiarism-service
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres123@plagiarism-db:5432/plagiarism_db
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      SUBMISSION_SERVICE_URL: http://submission-service:8004
+      PLAGIARISM_THRESHOLD: 0.75
+    ports:
+      - "8007:8007"
+    depends_on:
+      - plagiarism-db
+      - rabbitmq
+      - submission-service
+    networks:
+      - microservices
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8007/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============ FRONTEND ============
+  
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    environment:
+      REACT_APP_API_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - auth-service
+    networks:
+      - microservices
+
+volumes:
+  auth_db_volume:
+  submission_db_volume:
+  execution_db_volume:
+  grading_db_volume:
+  plagiarism_db_volume:
+  audit_db_volume:
+  rabbitmq_volume:
+  redis_volume:
+
+networks:
+  microservices:
+    driver: bridge

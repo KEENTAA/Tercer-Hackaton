@@ -1,0 +1,318 @@
+version: '3.9'
+
+services:
+  # PostgreSQL Databases
+  auth-db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: auth_db
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    volumes:
+      - auth_db_data:/var/lib/postgresql/data
+    ports:
+      - "5401:5432"
+
+  user-db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: user_db
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    volumes:
+      - user_db_data:/var/lib/postgresql/data
+    ports:
+      - "5402:5432"
+
+  assignment-db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: assignment_db
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    volumes:
+      - assignment_db_data:/var/lib/postgresql/data
+    ports:
+      - "5403:5432"
+
+  submission-db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: submission_db
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    volumes:
+      - submission_db_data:/var/lib/postgresql/data
+    ports:
+      - "5404:5432"
+
+  execution-db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: execution_db
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    volumes:
+      - execution_db_data:/var/lib/postgresql/data
+    ports:
+      - "5405:5432"
+
+  grading-db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: grading_db
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    volumes:
+      - grading_db_data:/var/lib/postgresql/data
+    ports:
+      - "5406:5432"
+
+  plagiarism-db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: plagiarism_db
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    volumes:
+      - plagiarism_db_data:/var/lib/postgresql/data
+    ports:
+      - "5407:5432"
+
+  audit-db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: audit_db
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    volumes:
+      - audit_db_data:/var/lib/postgresql/data
+    ports:
+      - "5408:5432"
+
+  lms-integration-db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: lms_integration_db
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    volumes:
+      - lms_integration_db_data:/var/lib/postgresql/data
+    ports:
+      - "5409:5432"
+
+  # RabbitMQ Message Broker
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  # Redis Cache
+  redis:
+    image: redis:7
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+
+  # ===== MICROSERVICIOS =====
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: ./gateway
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    depends_on:
+      - auth-service
+      - user-service
+      - assignment-service
+      - submission-service
+      - execution-service
+      - grading-service
+      - plagiarism-service
+      - audit-service
+      - lms-integration-service
+    environment:
+      - SERVICE_NAME=api-gateway
+      - JWT_SECRET_KEY=your-secret-key-change-in-production
+      - AUTH_SERVICE_URL=http://auth-service:8001
+      - USER_SERVICE_URL=http://user-service:8004
+      - ASSIGNMENT_SERVICE_URL=http://assignment-service:8005
+      - SUBMISSION_SERVICE_URL=http://submission-service:8002
+      - EXECUTION_SERVICE_URL=http://execution-service:8003
+      - GRADING_SERVICE_URL=http://grading-service:8006
+      - PLAGIARISM_SERVICE_URL=http://plagiarism-service:8009
+      - AUDIT_SERVICE_URL=http://audit-service:8007
+      - LMS_SERVICE_URL=http://lms-integration-service:8008
+    networks:
+      - default
+
+  # Auth Service
+  auth-service:
+    build:
+      context: ./auth-service
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    depends_on:
+      - auth-db
+      - rabbitmq
+    environment:
+      - DATABASE_URL=postgresql://user:password@auth-db:5432/auth_db
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - JWT_SECRET_KEY=your-secret-key-change-in-production
+    networks:
+      - default
+
+  # User Service
+  user-service:
+    build:
+      context: ./user-service
+      dockerfile: Dockerfile
+    ports:
+      - "8004:8004"
+    depends_on:
+      - user-db
+      - rabbitmq
+    environment:
+      - DATABASE_URL=postgresql://user:password@user-db:5432/user_db
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+    networks:
+      - default
+
+  # Assignment Service
+  assignment-service:
+    build:
+      context: ./assignment-service
+      dockerfile: Dockerfile
+    ports:
+      - "8005:8005"
+    depends_on:
+      - assignment-db
+      - rabbitmq
+    environment:
+      - DATABASE_URL=postgresql://user:password@assignment-db:5432/assignment_db
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+    networks:
+      - default
+
+  # Submission Service
+  submission-service:
+    build:
+      context: ./submission-service
+      dockerfile: Dockerfile
+    ports:
+      - "8002:8002"
+    depends_on:
+      - submission-db
+      - rabbitmq
+    environment:
+      - DATABASE_URL=postgresql://user:password@submission-db:5432/submission_db
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+    networks:
+      - default
+
+  # Execution Service
+  execution-service:
+    build:
+      context: ./execution-service
+      dockerfile: Dockerfile
+    ports:
+      - "8003:8003"
+    depends_on:
+      - execution-db
+      - rabbitmq
+    environment:
+      - DATABASE_URL=postgresql://user:password@execution-db:5432/execution_db
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+    networks:
+      - default
+
+  # Grading Service
+  grading-service:
+    build:
+      context: ./grading-service
+      dockerfile: Dockerfile
+    ports:
+      - "8006:8006"
+    depends_on:
+      - grading-db
+      - rabbitmq
+    environment:
+      - DATABASE_URL=postgresql://user:password@grading-db:5432/grading_db
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+    networks:
+      - default
+
+  # Plagiarism Service
+  plagiarism-service:
+    build:
+      context: ./plagiarism-service
+      dockerfile: Dockerfile
+    ports:
+      - "8009:8009"
+    depends_on:
+      - plagiarism-db
+      - rabbitmq
+    environment:
+      - DATABASE_URL=postgresql://user:password@plagiarism-db:5432/plagiarism_db
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+    networks:
+      - default
+
+  # Audit Service
+  audit-service:
+    build:
+      context: ./audit-service
+      dockerfile: Dockerfile
+    ports:
+      - "8007:8007"
+    depends_on:
+      - audit-db
+      - rabbitmq
+    environment:
+      - DATABASE_URL=postgresql://user:password@audit-db:5432/audit_db
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+    networks:
+      - default
+
+  # LMS Integration Service
+  lms-integration-service:
+    build:
+      context: ./lms-integration-service
+      dockerfile: Dockerfile
+    ports:
+      - "8008:8008"
+    depends_on:
+      - lms-integration-db
+      - rabbitmq
+    environment:
+      - DATABASE_URL=postgresql://user:password@lms-integration-db:5432/lms_integration_db
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+    networks:
+      - default
+
+volumes:
+  auth_db_data:
+  user_db_data:
+  assignment_db_data:
+  submission_db_data:
+  execution_db_data:
+  grading_db_data:
+  plagiarism_db_data:
+  audit_db_data:
+  lms_integration_db_data:
+  rabbitmq_data:
+  redis_data:
+
+networks:
+  default:
+    name: code-grading-network
