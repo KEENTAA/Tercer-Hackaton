@@ -43,6 +43,7 @@ def create_intento(db: Session, intento_in: IntentoCreate, id_estudiante: int):
         id_estudiante=id_estudiante,
         numero_intento=proximo_numero_intento,
         url_codigo_fuente=intento_in.url_codigo_fuente,
+        contenido_codigo=intento_in.contenido_codigo,
         estado="ENVIADO" # Estado por defecto al subir el archivo
     )
     

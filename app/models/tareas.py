@@ -3,7 +3,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.session import Base
 from datetime import datetime
 from decimal import Decimal
-
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text
 class Tarea(Base):
     __tablename__ = "tareas"
 
@@ -40,6 +40,7 @@ class Intento(Base):
     fecha_envio: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     url_codigo_fuente: Mapped[str] = mapped_column(String(255), nullable=False)
     nota_total: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=True)
+    contenido_codigo = Column(Text, nullable=True)
     estado: Mapped[str] = mapped_column(String(20), default="ENVIADO")
 
     __table_args__ = (
