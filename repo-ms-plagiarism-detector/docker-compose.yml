@@ -1,0 +1,10 @@
+version: '3.8'
+services:
+  plagiarism-service:
+    build: .
+    ports:
+      - "8010:8000"
+    volumes:
+      - .:/app
+    environment:
+      - PYTHONUNBUFFERED=1
