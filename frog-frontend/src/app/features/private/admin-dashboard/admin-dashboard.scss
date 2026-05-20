@@ -21,32 +21,6 @@
   }
 }
 
-.actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.filter-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
-
-  label {
-    font-size: 0.875rem;
-    font-weight: 500;
-  }
-}
-
-.w-full {
-  width: 100%;
-}
-
 .empty-state {
   color: var(--text-color-secondary);
   text-align: center;

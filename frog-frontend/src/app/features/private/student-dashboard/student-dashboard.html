@@ -21,57 +21,9 @@
     }
   </div>
 
-  @if (tasks().length > 0) {
-    <h2 class="page-title">Tareas Disponibles</h2>
-
-    <p-table [value]="tasks()" responsiveLayout="scroll" class="tasks-table">
-      <ng-template pTemplate="header">
-        <tr>
-          <th>Título</th>
-          <th>Descripción</th>
-          <th>Fecha Límite</th>
-          <th>Estado</th>
-          <th>Acciones</th>
-        </tr>
-      </ng-template>
-      <ng-template pTemplate="body" let-task>
-        <tr>
-          <td>{{ task.titulo }}</td>
-          <td class="desc-cell">{{ task.descripcion }}</td>
-          <td>{{ task.fecha_limite | date: 'dd/MM/yyyy HH:mm' }}</td>
-          <td>
-            @if (isTaskExpired(task)) {
-              <p-tag severity="danger" value="Cerrada"></p-tag>
-            } @else {
-              <p-tag severity="success" value="Abierta"></p-tag>
-            }
-          </td>
-          <td>
-            <p-button
-              label="Enviar"
-              icon="pi pi-upload"
-              size="small"
-              [disabled]="isTaskExpired(task)"
-              (onClick)="openUploadDialog(task)"
-            />
-          </td>
-        </tr>
-      </ng-template>
-    </p-table>
-  }
-
   <h2 class="page-title">Historial de Envíos</h2>
 
-  <p-table
-    [value]="paginatedAttempts()"
-    [paginator]="true"
-    [totalRecords]="attempts().length"
-    [rows]="studentPageSize()"
-    [rowsPerPageOptions]="[5, 10, 20]"
-    (onPage)="onStudentPageChange($event)"
-    responsiveLayout="scroll"
-    class="attempts-table"
-  >
+  <p-table [value]="attempts()" responsiveLayout="scroll" class="attempts-table">
     <ng-template pTemplate="header">
       <tr>
         <th>#</th>
@@ -88,7 +40,7 @@
         <td>Tarea #{{ attempt.id_tarea }}</td>
         <td>{{ attempt.fecha_envio | date: 'dd/MM/yyyy HH:mm' }}</td>
         <td>
-          @if (attempt.nota_total !== null) {
+          @if (attempt.nota_total) {
             <span class="grade">{{ attempt.nota_total }}</span>
           } @else {
             <span class="no-grade">—</span>
@@ -114,48 +66,99 @@
   </p-table>
 
   <p-dialog
-    [(visible)]="showUploadDialog"
-    [header]="'Enviar: ' + (selectedTask()?.titulo ?? '')"
+    [(visible)]="showTaskDialog"
+    header="Tareas del Curso"
     [modal]="true"
-    [style]="{ width: '500px' }"
+    [style]="{ width: '700px' }"
   >
-    @if (uploading()) {
-      <div class="uploading-state">
-        <p-progressspinner></p-progressspinner>
-        <p>Enviando código...</p>
-      </div>
+    @if (tasks().length > 0) {
+      <p-table [value]="tasks()" responsiveLayout="scroll">
+        <ng-template pTemplate="header">
+          <tr>
+            <th>Título</th>
+            <th>Fecha Límite</th>
+            <th>Criterios</th>
+            <th>Acciones</th>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-task>
+          <tr>
+            <td>{{ task.titulo }}</td>
+            <td>{{ task.fecha_limite | date: 'dd/MM/yyyy HH:mm' }}</td>
+            <td>{{ task.criterios.length }} criterios</td>
+            <td>
+              <p-button
+                label="Enviar"
+                icon="pi pi-upload"
+                size="small"
+                [disabled]="isTaskExpired(task)"
+                (onClick)="openSubmitDialog(task)"
+              />
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
     } @else {
-      <p-fileupload
-        name="code"
-        [customUpload]="true"
-        (uploadHandler)="onUpload($event)"
-        accept=".py,.java,.js,.ts,.c,.cpp,.rb,.go,.rs"
-        maxFileSize="1000000"
-        chooseLabel="Seleccionar"
-        uploadLabel="Enviar"
-        cancelLabel="Cancelar"
-      ></p-fileupload>
+      <p class="empty-state">No hay tareas disponibles.</p>
     }
   </p-dialog>
 
   <p-dialog
-    [(visible)]="showAttemptDetailDialog"
+    [(visible)]="showSubmitDialog"
+    [header]="'Enviar: ' + (selectedTask()?.titulo ?? '')"
+    [modal]="true"
+    [style]="{ width: '500px' }"
+  >
+    @if (submitting()) {
+      <div class="submitting-state">
+        <p-progressspinner></p-progressspinner>
+        <p>Enviando tarea...</p>
+      </div>
+    } @else {
+      <form #submitForm="ngForm" (ngSubmit)="submitTask(urlInput.value)" class="submit-form">
+        <div class="field">
+          <label for="url">URL del código fuente</label>
+          <input
+            #urlInput
+            id="url"
+            type="text"
+            pInputText
+            ngModel
+            required
+            placeholder="https://github.com/usuario/repo/blob/main/solucion.py"
+            fluid
+          />
+        </div>
+        <p-button
+          type="submit"
+          label="Enviar"
+          icon="pi pi-upload"
+          [disabled]="!urlInput.value"
+          fluid
+        />
+      </form>
+    }
+  </p-dialog>
+
+  <p-dialog
+    [(visible)]="showAttemptDialog"
     header="Detalle del Envío"
     [modal]="true"
-    [style]="{ width: '700px' }"
+    [style]="{ width: '600px' }"
   >
-    @if (attemptDetail()) {
+    @if (selectedAttempt()) {
       <div class="attempt-detail">
         <div class="detail-section">
           <h4>Información General</h4>
-          <p><strong>Intento:</strong> #{{ attemptDetail()!.numero_intento }}</p>
-          <p><strong>Nota Total:</strong> {{ attemptDetail()!.nota_total ?? 'Pendiente' }}</p>
+          <p><strong>Intento:</strong> #{{ selectedAttempt()!.numero_intento }}</p>
+          <p><strong>Nota Total:</strong> {{ selectedAttempt()!.nota_total || 'Pendiente' }}</p>
+          <p><strong>Estado:</strong> {{ selectedAttempt()!.estado }}</p>
         </div>
 
-        @if (attemptDetail()!.calificaciones.length) {
+        @if (selectedAttempt()!.calificaciones_detalladas?.length) {
           <div class="detail-section">
             <h4>Calificaciones por Criterio</h4>
-            <p-table [value]="attemptDetail()!.calificaciones" [tableStyle]="{ 'min-width': '100%' }">
+            <p-table [value]="selectedAttempt()!.calificaciones_detalladas ?? []" [tableStyle]="{ 'min-width': '100%' }">
               <ng-template pTemplate="header">
                 <tr>
                   <th>Criterio</th>
@@ -171,43 +174,6 @@
                 </tr>
               </ng-template>
             </p-table>
-          </div>
-        }
-
-        @if (attemptDetail()!.ejecucion) {
-          <div class="detail-section">
-            <h4>Resultado de Ejecución</h4>
-            <p><strong>Estado:</strong> {{ attemptDetail()!.ejecucion!.estado_compilacion }}</p>
-            <p><strong>Tiempo:</strong> {{ attemptDetail()!.ejecucion!.tiempo_usado_ms }}ms</p>
-            <p><strong>Memoria:</strong> {{ attemptDetail()!.ejecucion!.memoria_usada_kb }}KB</p>
-            <p><strong>Aprobado:</strong> {{ attemptDetail()!.ejecucion!.aprobado ? 'Sí' : 'No' }}</p>
-            @if (attemptDetail()!.ejecucion!.salida_consola) {
-              <pre class="console-output">{{ attemptDetail()!.ejecucion!.salida_consola }}</pre>
-            }
-          </div>
-        }
-
-        @if (plagiarismReport()) {
-          <div class="detail-section">
-            <h4>Reporte de Plagio</h4>
-            <p><strong>Similitud:</strong> {{ plagiarismReport()!.porcentaje_similitud_total }}%</p>
-            <p><strong>Estado:</strong> {{ plagiarismReport()!.estado_analisis }}</p>
-            @if (plagiarismReport()!.coincidencias.length) {
-              <p-table [value]="plagiarismReport()!.coincidencias" [tableStyle]="{ 'min-width': '100%' }">
-                <ng-template pTemplate="header">
-                  <tr>
-                    <th>Código Coincidente</th>
-                    <th>Coincidencia</th>
-                  </tr>
-                </ng-template>
-                <ng-template pTemplate="body" let-match>
-                  <tr>
-                    <td>Firma #{{ match.id_firma_coincidente }}</td>
-                    <td>{{ match.porcentaje_coincidencia }}%</td>
-                  </tr>
-                </ng-template>
-              </p-table>
-            }
           </div>
         }
       </div>

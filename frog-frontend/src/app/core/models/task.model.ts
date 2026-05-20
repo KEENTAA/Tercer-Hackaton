@@ -1,19 +1,37 @@
-export interface Task {
-  id_tarea: number;
-  id_curso: number;
-  titulo: string;
+export interface CriterioCreate {
   descripcion: string;
-  fecha_limite: string;
+  ponderacion: number;
 }
 
-export interface GradingCriterion {
+export interface CriterioResponse {
   id_criterio: number;
   id_tarea: number;
   descripcion: string;
   ponderacion: number;
 }
 
-export type CreateTaskRequest = Omit<Task, 'id_tarea'>;
-export type UpdateTaskRequest = Partial<CreateTaskRequest>;
-export type CreateCriterionRequest = Omit<GradingCriterion, 'id_criterio'>;
-export type UpdateCriterionRequest = Partial<CreateCriterionRequest>;
+export interface Task {
+  id_tarea: number;
+  id_curso: number;
+  titulo: string;
+  descripcion: string;
+  fecha_limite: string;
+  criterios?: CriterioResponse[];
+}
+
+export interface TaskCreate {
+  titulo: string;
+  descripcion: string;
+  fecha_limite: string;
+  id_curso: number;
+  criterios: CriterioCreate[];
+}
+
+export interface TaskUpdate {
+  titulo?: string;
+  descripcion?: string;
+  fecha_limite?: string;
+}
+
+/** @deprecated Use CriterioResponse instead */
+export type GradingCriterion = CriterioResponse;

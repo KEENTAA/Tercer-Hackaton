@@ -1,19 +1,18 @@
-import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnInit, signal, computed } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CardModule } from 'primeng/card';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
-import { FileUploadModule } from 'primeng/fileupload';
 import { TabsModule } from 'primeng/tabs';
 import { AccordionModule } from 'primeng/accordion';
 import { MessageService } from 'primeng/api';
 import { ToastModule } from 'primeng/toast';
 import { TagModule } from 'primeng/tag';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
-import { AuthService, CourseService, TaskService, AttemptService, PlagiarismService } from '@core/services';
-import { Course, Task, Attempt, AttemptWithDetails, PlagiarismReportWithMatches } from '@core/models';
+import { AuthService, CourseService, TaskService, AttemptService } from '@core/services';
+import { Course, Task, Attempt } from '@core/models';
 
 @Component({
   selector: 'app-student-dashboard',
@@ -24,7 +23,6 @@ import { Course, Task, Attempt, AttemptWithDetails, PlagiarismReportWithMatches 
     TableModule,
     ButtonModule,
     DialogModule,
-    FileUploadModule,
     TabsModule,
     AccordionModule,
     ToastModule,
@@ -41,7 +39,6 @@ export class StudentDashboard implements OnInit {
   private courseService = inject(CourseService);
   private taskService = inject(TaskService);
   private attemptService = inject(AttemptService);
-  private plagiarismService = inject(PlagiarismService);
   private messageService = inject(MessageService);
 
   currentUser = this.auth.currentUser;
@@ -50,15 +47,15 @@ export class StudentDashboard implements OnInit {
   tasks = signal<Task[]>([]);
   attempts = signal<Attempt[]>([]);
   selectedTask = signal<Task | null>(null);
-  attemptDetail = signal<AttemptWithDetails | null>(null);
-  plagiarismReport = signal<PlagiarismReportWithMatches | null>(null);
+  selectedAttempt = signal<Attempt | null>(null);
 
-  showUploadDialog = signal(false);
-  showAttemptDetailDialog = signal(false);
-  uploading = signal(false);
+  showTaskDialog = signal(false);
+  showAttemptDialog = signal(false);
+  showSubmitDialog = signal(false);
+  submitting = signal(false);
 
-  studentPage = signal(1);
-  studentPageSize = signal(10);
+  attemptsSkip = signal(0);
+  attemptsLimit = signal(10);
 
   async ngOnInit(): Promise<void> {
     await this.loadCourses();
@@ -69,7 +66,7 @@ export class StudentDashboard implements OnInit {
     try {
       const user = this.currentUser();
       if (user) {
-        const data = await this.courseService.getMyCourses(user.id_usuario);
+        const data = await this.courseService.list();
         this.courses.set(data);
       }
     } catch {
@@ -83,11 +80,11 @@ export class StudentDashboard implements OnInit {
 
   async loadAttempts(): Promise<void> {
     try {
-      const user = this.currentUser();
-      if (user) {
-        const data = await this.attemptService.getByStudent(user.id_usuario);
-        this.attempts.set(data);
-      }
+      const data = await this.attemptService.getByStudent(
+        this.attemptsSkip(),
+        this.attemptsLimit(),
+      );
+      this.attempts.set(data);
     } catch {
       this.messageService.add({
         severity: 'error',
@@ -99,8 +96,9 @@ export class StudentDashboard implements OnInit {
 
   async loadTasks(courseId: number): Promise<void> {
     try {
-      const data = await this.taskService.getByCourse(courseId);
+      const data = await this.taskService.getTasksByCourseStudent(courseId);
       this.tasks.set(data);
+      this.showTaskDialog.set(true);
     } catch {
       this.messageService.add({
         severity: 'error',
@@ -110,61 +108,45 @@ export class StudentDashboard implements OnInit {
     }
   }
 
-  openUploadDialog(task: Task): void {
+  openSubmitDialog(task: Task): void {
     this.selectedTask.set(task);
-    this.showUploadDialog.set(true);
+    this.showSubmitDialog.set(true);
   }
 
-  async onUpload(event: { files: File[] }): Promise<void> {
+  async submitTask(url: string): Promise<void> {
     const task = this.selectedTask();
-    const user = this.currentUser();
-    if (!task || !user || event.files.length === 0) return;
+    if (!task) return;
 
-    this.uploading.set(true);
+    this.submitting.set(true);
 
     try {
-      const attempt = await this.attemptService.create({
+      await this.attemptService.create({
         id_tarea: task.id_tarea,
-        url_codigo_fuente: '',
+        url_codigo_fuente: url,
       });
-
-      await this.attemptService.uploadCode(attempt.id_intento, event.files[0]);
 
       this.messageService.add({
         severity: 'success',
         summary: 'Éxito',
-        detail: 'Código enviado correctamente',
+        detail: 'Tarea enviada correctamente',
       });
 
-      this.showUploadDialog.set(false);
+      this.showSubmitDialog.set(false);
       await this.loadAttempts();
     } catch {
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
-        detail: 'No se pudo enviar el código',
+        detail: 'No se pudo enviar la tarea',
       });
     } finally {
-      this.uploading.set(false);
+      this.submitting.set(false);
     }
   }
 
-  async viewAttemptDetail(attempt: Attempt): Promise<void> {
-    try {
-      const detail = await this.attemptService.getById(attempt.id_intento);
-      this.attemptDetail.set(detail);
-
-      const plagiarism = await this.plagiarismService.getByAttempt(attempt.id_intento);
-      this.plagiarismReport.set(plagiarism);
-
-      this.showAttemptDetailDialog.set(true);
-    } catch {
-      this.messageService.add({
-        severity: 'error',
-        summary: 'Error',
-        detail: 'No se pudo cargar el detalle',
-      });
-    }
+  viewAttemptDetail(attempt: Attempt): void {
+    this.selectedAttempt.set(attempt);
+    this.showAttemptDialog.set(true);
   }
 
   getStatusSeverity(status: string): 'success' | 'warn' | 'danger' | 'info' {
@@ -184,13 +166,8 @@ export class StudentDashboard implements OnInit {
     return new Date(task.fecha_limite) < new Date();
   }
 
-  paginatedAttempts = computed(() => {
-    const start = (this.studentPage() - 1) * this.studentPageSize();
-    return this.attempts().slice(start, start + this.studentPageSize());
-  });
-
-  onStudentPageChange(event: { first: number; rows: number }): void {
-    this.studentPage.set(event.first / event.rows + 1);
-    this.studentPageSize.set(event.rows);
+  parseNotaTotal(nota: string): number {
+    const parsed = parseFloat(nota);
+    return isNaN(parsed) ? 0 : parsed;
   }
 }

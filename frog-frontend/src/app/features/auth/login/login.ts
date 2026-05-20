@@ -60,7 +60,8 @@ export class Login {
     this.loading.set(true);
 
     try {
-      const user = await this.auth.login(this.loginForm.value);
+      await this.auth.login(this.loginForm.value);
+      const user = await this.auth.getMe();
       const route = this.getRouteByRole(user.rol);
       this.router.navigate([route]);
     } catch {

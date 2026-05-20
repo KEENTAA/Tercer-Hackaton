@@ -24,16 +24,8 @@
   }
 }
 
-.tasks-table,
 .attempts-table {
   margin-bottom: 2rem;
-}
-
-.desc-cell {
-  max-width: 300px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .grade {
@@ -51,12 +43,29 @@
   padding: 2rem;
 }
 
-.uploading-state {
+.submitting-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 1rem;
   padding: 2rem;
+}
+
+.submit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+
+  label {
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
 }
 
 .attempt-detail {
@@ -73,16 +82,5 @@
       margin: 0.25rem 0;
       font-size: 0.875rem;
     }
-  }
-
-  .console-output {
-    background: var(--surface-900);
-    color: var(--surface-0);
-    padding: 0.75rem;
-    border-radius: 0.375rem;
-    font-size: 0.75rem;
-    max-height: 200px;
-    overflow-y: auto;
-    margin-top: 0.5rem;
   }
 }

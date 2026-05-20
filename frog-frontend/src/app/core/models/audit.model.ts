@@ -10,11 +10,9 @@ export enum AuditAction {
 export interface AuditLog {
   id_auditoria: number;
   id_intento: number;
-  accion: AuditAction;
+  accion: string;
   valor_anterior: string;
   valor_nuevo: string;
   fecha_cambio: string;
   ejecutado_por: number;
 }
-
-export type AuditLogEntry = Omit<AuditLog, 'id_auditoria' | 'fecha_cambio'>;

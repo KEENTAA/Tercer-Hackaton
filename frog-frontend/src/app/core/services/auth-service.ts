@@ -2,12 +2,12 @@ import { Injectable, signal, computed, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { env } from '../../../environments/environment';
-import { User, LoginRequest, LoginResponse, CreateUserRequest, UpdateUserRequest } from '@core/models';
+import { User, LoginRequest, LoginResponse, UserCreate, UserUpdate } from '@core/models';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = `${env.apiUrl}/auth`;
+  private readonly apiUrl = env.apiBaseUrl;
   private readonly TOKEN_KEY = 'frog_token';
 
   private userSignal = signal<User | null>(this.loadUserFromStorage());
@@ -26,15 +26,21 @@ export class AuthService {
     return raw ? JSON.parse(raw) : null;
   }
 
-  async login(request: LoginRequest): Promise<User> {
+  async login(request: LoginRequest): Promise<void> {
     const response = await firstValueFrom(
-      this.http.post<LoginResponse>(`${this.apiUrl}/login`, request),
+      this.http.post<LoginResponse>(`${this.apiUrl}/api/auth/login`, request),
     );
-    localStorage.setItem(this.TOKEN_KEY, response.token);
-    localStorage.setItem('frog_user', JSON.stringify(response.user));
-    this.tokenSignal.set(response.token);
-    this.userSignal.set(response.user);
-    return response.user;
+    localStorage.setItem(this.TOKEN_KEY, response.access_token);
+    this.tokenSignal.set(response.access_token);
+  }
+
+  async getMe(): Promise<User> {
+    const response = await firstValueFrom(
+      this.http.get<User>(`${this.apiUrl}/api/auth/me`),
+    );
+    localStorage.setItem('frog_user', JSON.stringify(response));
+    this.userSignal.set(response);
+    return response;
   }
 
   logout(): void {
@@ -48,17 +54,19 @@ export class AuthService {
     return this.tokenSignal();
   }
 
-  async register(request: CreateUserRequest): Promise<User> {
+  async register(request: UserCreate): Promise<User> {
     const response = await firstValueFrom(
-      this.http.post<{ data: User }>(`${this.apiUrl}/register`, request),
+      this.http.post<User>(`${this.apiUrl}/api/auth/registro`, request),
     );
-    return response.data;
+    return response;
   }
 
-  async updateUser(id: number, request: UpdateUserRequest): Promise<User> {
+  async updateMe(request: UserUpdate): Promise<User> {
     const response = await firstValueFrom(
-      this.http.put<{ data: User }>(`${this.apiUrl}/users/${id}`, request),
+      this.http.put<User>(`${this.apiUrl}/api/auth/me`, request),
     );
-    return response.data;
+    localStorage.setItem('frog_user', JSON.stringify(response));
+    this.userSignal.set(response);
+    return response;
   }
 }

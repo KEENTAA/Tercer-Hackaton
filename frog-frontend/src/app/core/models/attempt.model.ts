@@ -8,6 +8,16 @@ export enum AttemptStatus {
   RECHAZADO = 'RECHAZADO',
 }
 
+export interface CalificacionDetallada {
+  id_intento: number;
+  id_criterio: number;
+  nota_obtenida: number;
+  comentarios: string;
+}
+
+/** @deprecated Use CalificacionDetallada instead */
+export type GradeByCriterion = CalificacionDetallada;
+
 export interface Attempt {
   id_intento: number;
   id_tarea: number;
@@ -15,22 +25,17 @@ export interface Attempt {
   numero_intento: number;
   fecha_envio: string;
   url_codigo_fuente: string;
-  nota_total: number | null;
+  nota_total: string | number | null;
   estado: AttemptStatus;
+  calificaciones_detalladas?: CalificacionDetallada[];
 }
 
-export interface GradeByCriterion {
-  id_intento: number;
-  id_criterio: number;
-  nota_obtenida: number;
-  comentarios: string;
+export interface AttemptCreate {
+  id_tarea: number;
+  url_codigo_fuente: string;
 }
 
 export interface AttemptWithDetails extends Attempt {
-  calificaciones: GradeByCriterion[];
   ejecucion?: ExecutionResult;
   plagio?: PlagiarismReport;
 }
-
-export type CreateAttemptRequest = Pick<Attempt, 'id_tarea' | 'url_codigo_fuente'>;
-export type UpdateAttemptStatus = Pick<Attempt, 'estado' | 'nota_total'>;

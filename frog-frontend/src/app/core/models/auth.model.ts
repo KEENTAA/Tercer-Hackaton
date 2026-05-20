@@ -18,9 +18,20 @@ export interface LoginRequest {
 }
 
 export interface LoginResponse {
-  token: string;
-  user: User;
+  access_token: string;
+  token_type: string;
 }
 
-export type CreateUserRequest = Omit<User, 'id_usuario'> & { password: string };
-export type UpdateUserRequest = Partial<CreateUserRequest>;
+export interface UserCreate {
+  codigo_universitario: string;
+  nombre: string;
+  correo: string;
+  rol: string;
+  password: string;
+}
+
+export interface UserUpdate {
+  nombre?: string;
+  correo?: string;
+  password?: string;
+}
